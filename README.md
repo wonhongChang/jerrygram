@@ -21,7 +21,7 @@ It features modern UI/UX design, cloud integration, native mobile apps, and an A
 - AI-powered chatbot assistant for user support and interaction  
 
 ## 📁 Project Structure
-
+```
 jerrygram/
 ├── backend-dotnet/ # ASP.NET Core API (C#)
 ├── backend-java/ # Spring Boot API (Java)
@@ -29,7 +29,7 @@ jerrygram/
 ├── mobile-android/ # Android app (Kotlin)
 ├── mobile-ios/ # iOS app (Swift)
 ├── docs/ # Documentation, ERD, API specs
-
+```
 ## 🚀 Getting Started
 
 Each directory contains its own README with setup and running instructions.
@@ -37,10 +37,11 @@ Each directory contains its own README with setup and running instructions.
 1. Clone the repository:  
 ```bash
 git clone https://github.com/yourusername/jerrygram.git
+```
 2. Navigate to the desired project folder and follow instructions.
-
-🤖 AI Chatbot
+  
+## 🤖 AI Chatbot  
 Integrated AI chatbot using Azure OpenAI to assist users, answer FAQs, and enhance user engagement across web and mobile apps.
 
-📄 License
+## 📄 License  
 This project is licensed under the MIT License.
