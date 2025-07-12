@@ -45,6 +45,16 @@ It features modern UI/UX design, cloud integration, native mobile apps, and an A
 ```
 jerrygram/
 ├── backend-dotnet/       # ASP.NET Core API (C#)
+│   └── Jerrygram.Api/    # Current active backend project
+│       ├── Controllers/       # API endpoints (UserController, PostController, etc)
+│       ├── Models/            # Database entities (User, Post, Comment, etc)
+│       ├── Dtos/              # Request/response data transfer objects
+│       ├── Services/          # Business logic interfaces & implementations
+│       ├── Repositories/      # Data access layer (EF Core or abstraction)
+│       ├── Data/              # AppDbContext, migration, seed data
+│       ├── Middleware/        # JWT auth, error handling, custom middleware
+│       ├── Helpers/           # Utility functions (hashing, token generation)
+│       └── appsettings.json   # Configuration
 ├── backend-java/         # Spring Boot API (Java)
 ├── frontend-react/       # React web frontend (TypeScript + Tailwind CSS)
 ├── mobile-android/       # Android app (Kotlin)
