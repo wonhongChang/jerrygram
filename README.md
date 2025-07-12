@@ -73,6 +73,17 @@ Integrated AI chatbot using Azure OpenAI to assist users, answer FAQs, and enhan
 Project planning is managed internally using Jira (private).
 Technical documentation is publicly shared via Confluence (external link to be added).
 
+## 🐳 Docker Support (Planned)
+
+Containerized environment setup is planned for:
+
+* Backend (ASP.NET Core API)
+* PostgreSQL database
+* Frontend (React app)
+* Azure AI Chatbot service (via Docker + Azure CLI)
+
+Docker Compose configuration and usage instructions will be added as development progresses.
+
 ## 📄 License
 
 This project is licensed under the MIT License.
