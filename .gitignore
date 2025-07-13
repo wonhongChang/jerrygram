@@ -624,3 +624,4 @@ FodyWeavers.xsd
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudio,java,node,android,xcode
 /backend-dotnet/Jerrygram.Api/appsettings.json
+/backend-dotnet/Jerrygram.Api/appsettings.Development.json
