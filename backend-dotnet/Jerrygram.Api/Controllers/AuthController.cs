@@ -1,8 +1,6 @@
-﻿using Jerrygram.Api.Models;
-using Jerrygram.Api.Services;
-using Microsoft.AspNetCore.Authorization;
+﻿using Jerrygram.Api.Dtos;
+using Jerrygram.Api.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace Jerrygram.Api.Controllers
 {
@@ -10,40 +8,47 @@ namespace Jerrygram.Api.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly JwtService _jwtService;
+        private readonly IAuthService _authService;
 
-        public AuthController(JwtService jwtService)
+        public AuthController(IAuthService authService)
         {
-            _jwtService = jwtService;
+            _authService = authService;
         }
 
-        // <summary>
-        /// Login endpoint that generates a JWT token for a user.
-        /// Note: This is a simplified version for demonstration only.
-        /// In production, you should validate the user from the database.
-        /// </summary>
-        /// <param name="user">User object (mocked)</param>
-        /// <returns>JWT token</returns>
+        [HttpPost("register")]
+        public async Task<IActionResult> Register(RegisterDto dto)
+        {
+            try
+            {
+                var token = await _authService.RegisterAsync(dto);
+                return Ok(new { token });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { error = "An unexpected error occurred." });
+            }
+        }
+
         [HttpPost("login")]
-        public IActionResult Login([FromBody] User user)
+        public async Task<IActionResult> Login(LoginDto dto)
         {
-            // ⚠️ In real case, validate the user credentials from the database here.
-
-            var token = _jwtService.GenerateToken(user);
-            return Ok(new { token });
-        }
-
-        /// <summary>
-        /// Sample protected endpoint that requires JWT authentication.
-        /// Returns the authenticated user's ID.
-        /// </summary>
-        /// <returns>User ID string</returns>
-        [Authorize]
-        [HttpGet("test")]
-        public IActionResult GetMyInfo()
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            return Ok($"Authenticated user ID: {userId}");
+            try
+            {
+                var token = await _authService.LoginAsync(dto);
+                return Ok(new { token });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { error = "An unexpected error occurred." });
+            }
         }
     }
 }
