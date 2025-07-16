@@ -20,6 +20,6 @@ namespace Jerrygram.Api.Models
         [ForeignKey("UserId")]
         public User User { get; set; } = null!;
 
-        public DateTime LikedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

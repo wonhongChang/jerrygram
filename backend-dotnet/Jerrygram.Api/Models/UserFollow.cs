@@ -20,6 +20,6 @@ namespace Jerrygram.Api.Models
         [ForeignKey("FollowingId")]
         public User Following { get; set; } = null!;
 
-        public DateTime FollowedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }
