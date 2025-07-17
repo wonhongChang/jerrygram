@@ -11,9 +11,8 @@ namespace Jerrygram.Api.Models
         /// <summary>
         /// Azure Blob URL
         /// </summary>
-        [Required]
         [MaxLength(300)]
-        public string ImageUrl { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; } = string.Empty;
 
         [MaxLength(2200)]
         public string? Caption { get; set; }
