@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace Jerrygram.Api.Controllers
 {
@@ -103,32 +102,47 @@ namespace Jerrygram.Api.Controllers
         /// </summary>
         [AllowAnonymous]
         [HttpGet]
-        public async Task<IActionResult> GetAllPosts()
+        public async Task<IActionResult> GetAllPosts([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
+            if (page < 1 || pageSize < 1)
+                return BadRequest("Invalid pagination parameters.");
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var currentUserId = string.IsNullOrEmpty(userId) ? Guid.Empty : Guid.Parse(userId);
 
-            var posts = await _context.Posts
+            var query = _context.Posts
                 .Include(p => p.User)
-                .OrderByDescending(p => p.CreatedAt)
-                .Select(p => new
+                .OrderByDescending(p => p.CreatedAt);
+
+            var totalCount = await query.CountAsync();
+
+            var posts = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(p => new PostListItemDto
                 {
-                    p.Id,
-                    p.Caption,
-                    p.ImageUrl,
-                    p.CreatedAt,
+                    Id = p.Id,
+                    Caption = p.Caption,
+                    ImageUrl = p.ImageUrl,
+                    CreatedAt = p.CreatedAt,
                     Likes = p.Likes.Count,
                     Liked = p.Likes.Any(l => l.UserId == currentUserId),
-                    User = new
+                    User = new SimpleUserDto
                     {
-                        p.User.Id,
-                        p.User.Username,
-                        p.User.ProfileImageUrl
+                        Id = p.User.Id,
+                        Username = p.User.Username,
+                        ProfileImageUrl = p.User.ProfileImageUrl
                     }
                 })
                 .ToListAsync();
 
-            return Ok(posts);
+            return Ok(new PagedResult<PostListItemDto>
+            {
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                Items = posts
+            });
         }
 
         /// <summary>
@@ -256,41 +270,55 @@ namespace Jerrygram.Api.Controllers
         /// </summary>
         /// <returns>A list of posts from followed users.</returns>
         [HttpGet("feed")]
-        public async Task<IActionResult> GetFeed()
+        public async Task<IActionResult> GetFeed([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
+            if (page < 1 || pageSize < 1)
+                return BadRequest("Invalid pagination parameters.");
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
             var currentUserId = Guid.Parse(userId);
 
             var followingIds = await _context.UserFollows
-                .Where(f => f.FollowerId == Guid.Parse(userId))
+                .Where(f => f.FollowerId == currentUserId)
                 .Select(f => f.FollowingId)
                 .ToListAsync();
 
-            var feedPosts = await _context.Posts
+            var query = _context.Posts
                 .Include(p => p.User)
                 .Include(p => p.Likes)
                 .Where(p => followingIds.Contains(p.UserId))
-                .Include(p => p.User)
-                .OrderByDescending(p => p.CreatedAt)
-                .Select(p => new
+                .OrderByDescending(p => p.CreatedAt);
+
+            var totalCount = await query.CountAsync();
+
+            var posts = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(p => new PostListItemDto
                 {
-                    p.Id,
-                    p.Caption,
-                    p.ImageUrl,
-                    p.CreatedAt,
+                    Id = p.Id,
+                    Caption = p.Caption,
+                    ImageUrl = p.ImageUrl,
+                    CreatedAt = p.CreatedAt,
                     Likes = p.Likes.Count,
                     Liked = p.Likes.Any(l => l.UserId == currentUserId),
-                    User = new
+                    User = new SimpleUserDto
                     {
-                        p.User.Id,
-                        p.User.Username,
-                        p.User.ProfileImageUrl
+                        Id = p.User.Id,
+                        Username = p.User.Username,
+                        ProfileImageUrl = p.User.ProfileImageUrl
                     }
                 })
                 .ToListAsync();
 
-            return Ok(feedPosts);
+            return Ok(new PagedResult<PostListItemDto>
+            {
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                Items = posts
+            });
         }
 
         /// <summary>
@@ -300,21 +328,36 @@ namespace Jerrygram.Api.Controllers
         /// <returns>List of users who liked the post.</returns>
         [AllowAnonymous]
         [HttpGet("{id}/likes")]
-        public async Task<IActionResult> GetPostLikes(Guid id)
+        public async Task<IActionResult> GetPostLikes(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            var users = await _context.PostLikes
+            if (page < 1 || pageSize < 1)
+                return BadRequest("Invalid pagination parameters.");
+
+            var query = _context.PostLikes
                 .Where(l => l.PostId == id)
                 .Include(l => l.User)
-                .OrderByDescending(l => l.CreatedAt)
-                .Select(l => new
+                .OrderByDescending(l => l.CreatedAt);
+
+            var totalCount = await query.CountAsync();
+
+            var users = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(l => new SimpleUserDto
                 {
-                    l.User.Id,
-                    l.User.Username,
-                    l.User.ProfileImageUrl
+                    Id = l.User.Id,
+                    Username = l.User.Username,
+                    ProfileImageUrl = l.User.ProfileImageUrl
                 })
                 .ToListAsync();
 
-            return Ok(users);
+            return Ok(new PagedResult<SimpleUserDto>
+            {
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                Items = users
+            });
         }
     }
 }
