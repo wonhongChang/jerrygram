@@ -189,7 +189,7 @@ namespace Jerrygram.Api.Controllers
                 _context.Posts.Remove(post);
                 await _context.SaveChangesAsync();
 
-                return Ok();
+                return NoContent();
             }
             catch (Exception ex)
             {
@@ -248,7 +248,7 @@ namespace Jerrygram.Api.Controllers
             _context.PostLikes.Remove(like);
             await _context.SaveChangesAsync();
 
-            return Ok();
+            return NoContent();
         }
 
         /// <summary>

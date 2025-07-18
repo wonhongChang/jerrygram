@@ -131,7 +131,7 @@ namespace Jerrygram.Api.Controllers
             _context.UserFollows.Remove(follow);
             await _context.SaveChangesAsync();
 
-            return Ok();
+            return NoContent();
         }
 
         /// <summary>
