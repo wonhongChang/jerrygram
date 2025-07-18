@@ -26,7 +26,7 @@ It features modern UI/UX design, cloud integration, native mobile apps, and an A
 ### Cloud & Services
 
 * Azure: Web API hosting, Blob Storage for image upload, Azure OpenAI for chatbot
-* Google Cloud Platform: Java backend deployment (future plan)
+* Amazon Web Services: Java backend deployment (future plan)
 
 ### AI
 
