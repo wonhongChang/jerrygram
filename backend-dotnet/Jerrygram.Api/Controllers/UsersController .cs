@@ -87,20 +87,39 @@ namespace Jerrygram.Api.Controllers
             if (!targetExists)
                 return NotFound(new { error = "User not found." });
 
+            var currentUserGuid = Guid.Parse(currentUserId);
+
             var exists = await _context.UserFollows.AnyAsync(f =>
-                f.FollowerId == Guid.Parse(currentUserId) && f.FollowingId == id);
+                f.FollowerId == currentUserGuid && f.FollowingId == id);
 
             if (exists)
                 return BadRequest(new { message = "Already following." });
 
             var follow = new UserFollow
             {
-                FollowerId = Guid.Parse(currentUserId),
+                FollowerId = currentUserGuid,
                 FollowingId = id,
                 CreatedAt = DateTime.UtcNow
             };
 
             _context.UserFollows.Add(follow);
+
+            if (id != currentUserGuid)
+            {
+                var user = await _context.Users.FindAsync(currentUserGuid);
+                if (user != null)
+                {
+                    _context.Notifications.Add(new Notification
+                    {
+                        RecipientId = id,
+                        FromUserId = currentUserGuid,
+                        Type = NotificationType.Follow,
+                        Message = $"{user.Username} started following you.",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+
             await _context.SaveChangesAsync();
 
             return Ok();
@@ -118,6 +137,8 @@ namespace Jerrygram.Api.Controllers
             if (currentUserId == null || currentUserId == id.ToString())
                 return BadRequest();
 
+            var currentUserGuid = Guid.Parse(currentUserId);
+
             var targetExists = await _context.Users.AnyAsync(u => u.Id == id);
             if (!targetExists)
                 return NotFound(new { error = "User not found." });
@@ -129,6 +150,15 @@ namespace Jerrygram.Api.Controllers
                 return NotFound();
 
             _context.UserFollows.Remove(follow);
+
+            var notification = await _context.Notifications.FirstOrDefaultAsync(n =>
+                n.Type == NotificationType.Follow &&
+                n.FromUserId == currentUserGuid &&
+                n.RecipientId == id);
+
+            if (notification != null)
+                _context.Notifications.Remove(notification);
+
             await _context.SaveChangesAsync();
 
             return NoContent();

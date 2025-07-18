@@ -27,25 +27,65 @@ namespace Jerrygram.Api.Controllers
         public async Task<IActionResult> CreateComment(Guid postId, [FromBody] CreateCommentDto dto)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null)
+            if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
-            var postExists = await _context.Posts.AnyAsync(p => p.Id == postId);
-            if (!postExists)
+            var currentUserId = Guid.Parse(userId);
+
+            var post = await _context.Posts
+                .Include(p => p.User)
+                .FirstOrDefaultAsync(p => p.Id == postId);
+
+            if (post == null)
                 return NotFound(new { error = "Post not found." });
+
+            var user = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == currentUserId);
+
+            if (user == null)
+                return Unauthorized();
 
             var comment = new Comment
             {
                 PostId = postId,
-                UserId = Guid.Parse(userId),
+                UserId = currentUserId,
                 Content = dto.Content,
                 CreatedAt = DateTime.UtcNow
             };
 
             _context.Comments.Add(comment);
+
+            // Save notification if commenter is not the post owner
+            if (post.UserId != currentUserId)
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    RecipientId = post.UserId,
+                    FromUserId = currentUserId,
+                    Type = NotificationType.Comment,
+                    PostId = postId,
+                    Message = $"{user.Username} commented on your post.",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetComments), new { postId = postId }, comment);
+            var response = new CommentResponseDto
+            {
+                Id = comment.Id,
+                Content = comment.Content,
+                CreatedAt = comment.CreatedAt,
+                User = new SimpleUserDto
+                {
+                    Id = user.Id,
+                    Username = user.Username,
+                    ProfileImageUrl = user.ProfileImageUrl
+                }
+            };
+
+            return CreatedAtAction(nameof(GetComments), new { postId }, response);
         }
 
         /// <summary>
@@ -86,14 +126,25 @@ namespace Jerrygram.Api.Controllers
             if (userId == null)
                 return Unauthorized();
 
+            var currentUserId = Guid.Parse(userId);
+
             var comment = await _context.Comments.FirstOrDefaultAsync(c => c.Id == commentId);
             if (comment == null)
                 return NotFound();
 
-            if (comment.UserId != Guid.Parse(userId))
+            if (comment.UserId != currentUserId)
                 return Forbid();
 
             _context.Comments.Remove(comment);
+
+            var notification = await _context.Notifications.FirstOrDefaultAsync(n =>
+                n.Type == NotificationType.Comment &&
+                n.PostId == comment.PostId &&
+                n.FromUserId == currentUserId);
+
+            if (notification != null)
+                _context.Notifications.Remove(notification);
+
             await _context.SaveChangesAsync();
 
             return NoContent();

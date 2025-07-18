@@ -223,11 +223,20 @@ namespace Jerrygram.Api.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
+            var currentUserId = Guid.Parse(userId);
+
             var alreadyLiked = await _context.PostLikes
                 .AnyAsync(l => l.PostId == id && l.UserId == Guid.Parse(userId));
 
             if (alreadyLiked)
                 return BadRequest("You have already liked this post.");
+
+            var post = await _context.Posts
+                .Include(p => p.User)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (post == null)
+                return NotFound("Post not found.");
 
             var like = new PostLike
             {
@@ -237,6 +246,24 @@ namespace Jerrygram.Api.Controllers
             };
 
             _context.PostLikes.Add(like);
+
+            if (post.UserId != currentUserId)
+            {
+                var user = await _context.Users.FindAsync(currentUserId);
+                if (user != null)
+                {
+                    _context.Notifications.Add(new Notification
+                    {
+                        RecipientId = post.UserId,
+                        FromUserId = currentUserId,
+                        Type = NotificationType.Like,
+                        PostId = id,
+                        Message = $"{user.Username} liked your post.",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+
             await _context.SaveChangesAsync();
 
             return Ok();
@@ -253,6 +280,8 @@ namespace Jerrygram.Api.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
+            var currentUserId = Guid.Parse(userId);
+
             var like = await _context.PostLikes
                 .FirstOrDefaultAsync(l => l.PostId == id && l.UserId == Guid.Parse(userId));
 
@@ -260,6 +289,20 @@ namespace Jerrygram.Api.Controllers
                 return NotFound();
 
             _context.PostLikes.Remove(like);
+
+            var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == id);
+            if (post != null && post.UserId != currentUserId)
+            {
+                var notification = await _context.Notifications.FirstOrDefaultAsync(n =>
+                    n.Type == NotificationType.Like &&
+                    n.PostId == id &&
+                    n.FromUserId == currentUserId &&
+                    n.RecipientId == post.UserId);
+
+                if (notification != null)
+                    _context.Notifications.Remove(notification);
+            }
+
             await _context.SaveChangesAsync();
 
             return NoContent();
