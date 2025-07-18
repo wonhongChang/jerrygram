@@ -12,7 +12,7 @@ It features modern UI/UX design, cloud integration, native mobile apps, and an A
 ### Backend
 
 * ASP.NET Core (C#) — primary backend, hosted on Azure
-* Spring Boot (Java) — secondary implementation (planned), hosted on GCP
+* Spring Boot (Java) — secondary implementation (planned), hosted on AWS
 
 ### Mobile
 
@@ -26,7 +26,7 @@ It features modern UI/UX design, cloud integration, native mobile apps, and an A
 ### Cloud & Services
 
 * Azure: Web API hosting, Blob Storage for image upload, Azure OpenAI for chatbot
-* Google Cloud Platform: Java backend deployment (future plan)
+* AWS: Bedrock, S3, EKS/Kubernetes
 
 ### AI
 
@@ -69,7 +69,7 @@ Each directory contains its own README with setup and running instructions.
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/jerrygram.git
+git clone https://github.com/wonhonChang/jerrygram.git
 ```
 
 2. Navigate to the desired project folder and follow instructions.
