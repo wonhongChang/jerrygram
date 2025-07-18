@@ -12,7 +12,7 @@ It features modern UI/UX design, cloud integration, native mobile apps, and an A
 ### Backend
 
 * ASP.NET Core (C#) — primary backend, hosted on Azure
-* Spring Boot (Java) — secondary implementation (planned), hosted on GCP
+* Spring Boot (Java) — secondary implementation (planned), hosted on AWS
 
 ### Mobile
 
