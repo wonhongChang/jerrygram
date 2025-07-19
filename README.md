@@ -82,8 +82,11 @@ Integrated AI chatbot using Azure OpenAI to assist users, answer FAQs, and enhan
 
 ## 📋 Project Management
 
-Project planning is managed internally using Jira (private).
-Technical documentation is publicly shared via Confluence (external link to be added).
+Project planning is managed internally using **Jira** (private).
+
+Technical documentation is maintained in **Confluence**:
+
+🔗 [📘 Jerrygram Backend Documentation (Confluence)](https://jerryhub.atlassian.net/wiki/spaces/~5af0094aae7a832d555b8eae/folder/425989)  
 
 ## 🐳 Docker Support (Planned)
 
