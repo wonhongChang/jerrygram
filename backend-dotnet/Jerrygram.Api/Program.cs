@@ -77,10 +77,8 @@ using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-    // DB 마이그레이션 (선택)
     context.Database.Migrate();
 
-    // Seed 유저 존재 확인
     if (!context.Users.Any(u => u.Email == "jerry@gram.com"))
     {
         var user = new User

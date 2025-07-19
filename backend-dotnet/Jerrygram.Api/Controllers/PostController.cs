@@ -44,7 +44,7 @@ namespace Jerrygram.Api.Controllers
             string? imageUrl = null;
             if (dto.Image != null && dto.Image.Length > 0)
             {
-                imageUrl = await _blobService.UploadAsync(dto.Image);
+                imageUrl = await _blobService.UploadAsync(dto.Image, "PostContainer");
             }
 
             var post = new Post
@@ -85,10 +85,15 @@ namespace Jerrygram.Api.Controllers
             if (!string.IsNullOrWhiteSpace(dto.Caption))
                 post.Caption = dto.Caption;
 
+            if (!string.IsNullOrEmpty(post.ImageUrl))
+            {
+                await _blobService.DeleteAsync(post.ImageUrl, "PostContainer");
+            }
+
             // Replace image if a new one is provided
             if (dto.Image != null && dto.Image.Length > 0)
             {
-                var newImageUrl = await _blobService.UploadAsync(dto.Image);
+                var newImageUrl = await _blobService.UploadAsync(dto.Image, "PostContainer");
                 post.ImageUrl = newImageUrl;
             }
 

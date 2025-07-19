@@ -1,5 +1,7 @@
 ﻿using Jerrygram.Api.Data;
+using Jerrygram.Api.Dtos;
 using Jerrygram.Api.Models;
+using Jerrygram.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -216,6 +218,34 @@ namespace Jerrygram.Api.Controllers
                 .ToListAsync();
 
             return Ok(followings);
+        }
+
+        /// <summary>
+        /// Upload or update your profile avatar.
+        /// </summary>
+        /// <param name="dto">Multipart/form-data containing image file.</param>
+        /// <param name="blobService">Injected Azure Blob storage service</param>
+        /// <returns>Returns uploaded image URL</returns>
+        [HttpPost("me/avatar")]
+        public async Task<IActionResult> UploadAvatar([FromForm] AvatarUploadDto dto, [FromServices] BlobService blobService)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var user = await _context.Users.FindAsync(Guid.Parse(userId));
+            if (user == null) return NotFound();
+
+            if (!string.IsNullOrEmpty(user.ProfileImageUrl))
+            {
+                await blobService.DeleteAsync(user.ProfileImageUrl, "ProfileContainer");
+            }
+
+            var imageUrl = await blobService.UploadAsync(dto.Avatar, "ProfileContainer");
+            user.ProfileImageUrl = imageUrl;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { imageUrl });
         }
     }
 }
