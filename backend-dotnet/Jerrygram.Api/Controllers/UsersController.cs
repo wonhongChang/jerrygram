@@ -1,6 +1,9 @@
-﻿using Jerrygram.Api.Data;
+﻿using Jerrygram.Api.Constants;
+using Jerrygram.Api.Data;
 using Jerrygram.Api.Dtos;
 using Jerrygram.Api.Models;
+using Jerrygram.Api.Search;
+using Jerrygram.Api.Search.IndexModels;
 using Jerrygram.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -227,7 +230,7 @@ namespace Jerrygram.Api.Controllers
         /// <param name="blobService">Injected Azure Blob storage service</param>
         /// <returns>Returns uploaded image URL</returns>
         [HttpPost("me/avatar")]
-        public async Task<IActionResult> UploadAvatar([FromForm] AvatarUploadDto dto, [FromServices] BlobService blobService)
+        public async Task<IActionResult> UploadAvatar([FromForm] AvatarUploadDto dto, [FromServices] BlobService blobService, [FromServices] ElasticService elasticService)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
@@ -237,15 +240,62 @@ namespace Jerrygram.Api.Controllers
 
             if (!string.IsNullOrEmpty(user.ProfileImageUrl))
             {
-                await blobService.DeleteAsync(user.ProfileImageUrl, "ProfileContainer");
+                await blobService.DeleteAsync(user.ProfileImageUrl, BlobContainers.Profile);
             }
 
-            var imageUrl = await blobService.UploadAsync(dto.Avatar, "ProfileContainer");
+            var imageUrl = await blobService.UploadAsync(dto.Avatar, BlobContainers.Profile);
             user.ProfileImageUrl = imageUrl;
 
             await _context.SaveChangesAsync();
 
+            // Update the user's profile in the search index
+            await elasticService.IndexUserAsync(new Search.IndexModels.UserIndex
+            {
+                Id = user.Id,
+                Username = user.Username,
+                ProfileImageUrl = user.ProfileImageUrl
+            });
+
             return Ok(new { imageUrl });
         }
+
+        /// <summary>
+        /// Reindexes all users and posts in the system by sending their data to the Elasticsearch service.
+        /// </summary>
+        /// <remarks>This method retrieves all users and posts from the database, processes their data,
+        /// and sends it to the Elasticsearch service for indexing. It is intended to be used for rebuilding the search
+        /// index when necessary, such as after significant data changes or system updates.  This operation may take a
+        /// significant amount of time depending on the size of the database.</remarks>
+        //[AllowAnonymous]
+        //[HttpPost("reindex")]
+        //public async Task<IActionResult> ReindexAll([FromServices] ElasticService elastic)
+        //{
+        //    var users = await _context.Users.ToListAsync();
+        //    foreach (var user in users)
+        //    {
+        //        await elastic.IndexUserAsync(new UserIndex
+        //        {
+        //            Id = user.Id,
+        //            Username = user.Username,
+        //            ProfileImageUrl = user.ProfileImageUrl
+        //        });
+        //    }
+
+        //    var posts = await _context.Posts.Include(p => p.User).ToListAsync();
+        //    foreach (var post in posts)
+        //    {
+        //        await elastic.IndexPostAsync(new PostIndex
+        //        {
+        //            Id = post.Id,
+        //            Caption = post.Caption ?? "",
+        //            UserId = post.UserId,
+        //            Username = post.User.Username,
+        //            CreatedAt = post.CreatedAt,
+        //            Visibility = post.Visibility.ToString()
+        //        });
+        //    }
+
+        //    return Ok(new { message = "Reindex complete." });
+        //}
     }
 }

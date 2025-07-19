@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Jerrygram.Api.Models;
 
 namespace Jerrygram.Api.Dtos
 {
@@ -6,5 +6,6 @@ namespace Jerrygram.Api.Dtos
     {
         public string? Caption { get; set; }
         public IFormFile? Image { get; set; }
+        public PostVisibility Visibility { get; set; } = PostVisibility.Public;
     }
 }

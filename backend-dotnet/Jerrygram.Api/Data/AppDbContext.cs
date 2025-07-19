@@ -47,7 +47,8 @@ namespace Jerrygram.Api.Data
                 UserId = adminId,
                 ImageUrl = "https://placehold.co/600x400/EEE/31343C?font=poppins&text=Jerrygram",
                 Caption = "Welcome to Jerrygram!",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                Visibility = PostVisibility.Public
             });
 
             modelBuilder.Entity<Comment>().HasData(new Comment

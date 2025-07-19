@@ -1,6 +1,9 @@
-﻿using Jerrygram.Api.Data;
+﻿using Jerrygram.Api.Constants;
+using Jerrygram.Api.Data;
 using Jerrygram.Api.Dtos;
 using Jerrygram.Api.Models;
+using Jerrygram.Api.Search;
+using Jerrygram.Api.Search.IndexModels;
 using Jerrygram.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,12 +20,14 @@ namespace Jerrygram.Api.Controllers
         private readonly AppDbContext _context;
         private readonly BlobService _blobService;
         private readonly ILogger<PostController> _logger;
+        private readonly ElasticService _elastic;
 
-        public PostController(AppDbContext context, BlobService blobService, ILogger<PostController> logger)
+        public PostController(AppDbContext context, BlobService blobService, ILogger<PostController> logger, ElasticService elastic)
         {
             _context = context;
             _blobService = blobService;
             _logger = logger;
+            _elastic = elastic;
         }
 
         /// <summary>
@@ -44,7 +49,7 @@ namespace Jerrygram.Api.Controllers
             string? imageUrl = null;
             if (dto.Image != null && dto.Image.Length > 0)
             {
-                imageUrl = await _blobService.UploadAsync(dto.Image, "PostContainer");
+                imageUrl = await _blobService.UploadAsync(dto.Image, BlobContainers.Post);
             }
 
             var post = new Post
@@ -52,11 +57,26 @@ namespace Jerrygram.Api.Controllers
                 Caption = dto.Caption,
                 ImageUrl = imageUrl,
                 CreatedAt = DateTime.UtcNow,
-                UserId = Guid.Parse(userId)
+                UserId = Guid.Parse(userId),
+                Visibility = dto.Visibility
             };
 
             _context.Posts.Add(post);
             await _context.SaveChangesAsync();
+
+            var user = await _context.Users.FindAsync(post.UserId);
+            if (user != null)
+            {
+                await _elastic.IndexPostAsync(new PostIndex
+                {
+                    Id = post.Id,
+                    Caption = post.Caption,
+                    UserId = user.Id,
+                    Username = user.Username,
+                    CreatedAt = post.CreatedAt,
+                    Visibility = post.Visibility.ToString()
+                });
+            }
 
             return CreatedAtAction(nameof(GetPostById), new { id = post.Id }, post);
         }
@@ -85,21 +105,49 @@ namespace Jerrygram.Api.Controllers
             if (!string.IsNullOrWhiteSpace(dto.Caption))
                 post.Caption = dto.Caption;
 
-            if (!string.IsNullOrEmpty(post.ImageUrl))
-            {
-                await _blobService.DeleteAsync(post.ImageUrl, "PostContainer");
-            }
+            // Update visibility if provided
+            if (dto.Visibility != null)
+                post.Visibility = dto.Visibility.Value;
 
-            // Replace image if a new one is provided
+            // Replace image only if new image is provided
             if (dto.Image != null && dto.Image.Length > 0)
             {
-                var newImageUrl = await _blobService.UploadAsync(dto.Image, "PostContainer");
+                if (!string.IsNullOrEmpty(post.ImageUrl))
+                {
+                    await _blobService.DeleteAsync(post.ImageUrl, BlobContainers.Post);
+                }
+
+                var newImageUrl = await _blobService.UploadAsync(dto.Image, BlobContainers.Post);
                 post.ImageUrl = newImageUrl;
             }
 
             await _context.SaveChangesAsync();
 
-            return Ok(post);
+            var user = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == post.UserId);
+
+            if (user != null)
+            {
+                await _elastic.IndexPostAsync(new PostIndex
+                {
+                    Id = post.Id,
+                    Caption = post.Caption ?? string.Empty,
+                    UserId = user.Id,
+                    Username = user.Username,
+                    CreatedAt = post.CreatedAt,
+                    Visibility = post.Visibility.ToString()
+                });
+            }
+
+            return Ok(new
+            {
+                post.Id,
+                post.Caption,
+                post.ImageUrl,
+                post.CreatedAt,
+                post.Visibility
+            });
         }
 
         /// <summary>
@@ -117,6 +165,8 @@ namespace Jerrygram.Api.Controllers
 
             var query = _context.Posts
                 .Include(p => p.User)
+                .Include(p => p.Likes)
+                .Where(p => p.Visibility == PostVisibility.Public)
                 .OrderByDescending(p => p.CreatedAt);
 
             var totalCount = await query.CountAsync();
@@ -131,7 +181,7 @@ namespace Jerrygram.Api.Controllers
                     ImageUrl = p.ImageUrl,
                     CreatedAt = p.CreatedAt,
                     Likes = p.Likes.Count,
-                    Liked = p.Likes.Any(l => l.UserId == currentUserId),
+                    Liked = currentUserId != Guid.Empty && p.Likes.Any(l => l.UserId == currentUserId),
                     User = new SimpleUserDto
                     {
                         Id = p.User.Id,
@@ -163,26 +213,41 @@ namespace Jerrygram.Api.Controllers
 
             var post = await _context.Posts
                 .Include(p => p.User)
-                .Where(p => p.Id == id)
-                .Select(p => new
-                {
-                    p.Id,
-                    p.Caption,
-                    p.ImageUrl,
-                    p.CreatedAt,
-                    User = new
-                    {
-                        p.User.Id,
-                        p.User.Username,
-                        p.User.ProfileImageUrl
-                    },
-                    Likes = p.Likes.Count,
-                    Liked = p.Likes.Any(l => l.UserId == currentUserId)
-                })
-                .FirstOrDefaultAsync();
+                .Include(p => p.Likes)
+                .FirstOrDefaultAsync(p => p.Id == id);
 
-            if (post == null) return NotFound();
-            return Ok(post);
+            if (post == null)
+                return NotFound();
+
+            if (post.Visibility == PostVisibility.Private && post.UserId != currentUserId)
+                return Forbid();
+
+            if (post.Visibility == PostVisibility.FollowersOnly && post.UserId != currentUserId)
+            {
+                var isFollower = await _context.UserFollows.AnyAsync(f =>
+                    f.FollowingId == post.UserId && f.FollowerId == currentUserId);
+
+                if (!isFollower)
+                    return Forbid();
+            }
+
+            var response = new
+            {
+                post.Id,
+                post.Caption,
+                post.ImageUrl,
+                post.CreatedAt,
+                User = new
+                {
+                    post.User.Id,
+                    post.User.Username,
+                    post.User.ProfileImageUrl
+                },
+                Likes = post.Likes.Count,
+                Liked = currentUserId != Guid.Empty && post.Likes.Any(l => l.UserId == currentUserId)
+            };
+
+            return Ok(response);
         }
 
         /// <summary>
@@ -198,15 +263,30 @@ namespace Jerrygram.Api.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized("User not authenticated.");
 
-                var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == id);
+                var currentUserId = Guid.Parse(userId);
+
+                var post = await _context.Posts
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Id == id);
+
                 if (post == null)
                     return NotFound();
 
-                if (post.UserId != Guid.Parse(userId))
+                if (post.UserId != currentUserId)
                     return Forbid();
 
-                _context.Posts.Remove(post);
+                // Remove the post from DB first
+                _context.Posts.Remove(new Post { Id = id });
                 await _context.SaveChangesAsync();
+
+                // Delete image from BlobStorage
+                if (!string.IsNullOrEmpty(post.ImageUrl))
+                {
+                    await _blobService.DeleteAsync(post.ImageUrl, BlobContainers.Post);
+                }
+
+                // Delete from Elasticsearch
+                await _elastic.DeletePostAsync(id);
 
                 return NoContent();
             }

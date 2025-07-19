@@ -3,6 +3,7 @@ using Jerrygram.Api.Data;
 using Jerrygram.Api.Interfaces;
 using Jerrygram.Api.Models;
 using Jerrygram.Api.Search;
+using Jerrygram.Api.Search.IndexModels;
 using Jerrygram.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -69,7 +70,8 @@ namespace Jerrygram.Api.Extensions
             services.AddSingleton<IElasticClient>(sp =>
             {
                 var settings = new ConnectionSettings(new Uri("http://localhost:9200"))
-                    .DefaultIndex("posts")
+                    .DefaultMappingFor<PostIndex>(m => m.IndexName("posts"))
+                    .DefaultMappingFor<UserIndex>(m => m.IndexName("users"))
                     .EnableDebugMode();
 
                 return new ElasticClient(settings);

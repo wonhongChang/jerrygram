@@ -17,10 +17,13 @@ namespace Jerrygram.Api.Services
             _jwtService = jwtService;
         }
 
-        public async Task<string> RegisterAsync(RegisterDto dto)
+        public async Task<(string token, User user)> RegisterAsync(RegisterDto dto)
         {
             if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
                 throw new ArgumentException("This email is already in use.");
+
+            if (await _context.Users.AnyAsync(u => u.Username.ToLower() == dto.Username.ToLower()))
+                throw new ArgumentException("This username is already taken.");
 
             var user = new User
             {
@@ -32,7 +35,8 @@ namespace Jerrygram.Api.Services
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return _jwtService.GenerateToken(user);
+            var token = _jwtService.GenerateToken(user);
+            return (token, user);
         }
 
         public async Task<string> LoginAsync(LoginDto dto)

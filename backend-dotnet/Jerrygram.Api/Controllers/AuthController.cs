@@ -1,5 +1,7 @@
 ﻿using Jerrygram.Api.Dtos;
 using Jerrygram.Api.Interfaces;
+using Jerrygram.Api.Search;
+using Jerrygram.Api.Search.IndexModels;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Jerrygram.Api.Controllers
@@ -16,11 +18,19 @@ namespace Jerrygram.Api.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register(RegisterDto dto)
+        public async Task<IActionResult> Register([FromBody] RegisterDto dto, [FromServices] ElasticService elastic)
         {
             try
             {
-                var token = await _authService.RegisterAsync(dto);
+                var (token, user) = await _authService.RegisterAsync(dto);
+
+                await elastic.IndexUserAsync(new UserIndex
+                {
+                    Id = user.Id,
+                    Username = user.Username,
+                    ProfileImageUrl = user.ProfileImageUrl
+                });
+
                 return Ok(new { token });
             }
             catch (ArgumentException ex)

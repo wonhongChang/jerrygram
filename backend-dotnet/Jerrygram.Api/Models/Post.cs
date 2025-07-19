@@ -28,5 +28,11 @@ namespace Jerrygram.Api.Models
 
         public ICollection<Comment> Comments { get; set; } = [];
         public ICollection<PostLike> Likes { get; set; } = [];
+
+        /// <summary>
+        /// Visibility of the post (Public, FollowersOnly, Private)
+        /// </summary>
+        [Required]
+        public PostVisibility Visibility { get; set; } = PostVisibility.Public;
     }
 }
