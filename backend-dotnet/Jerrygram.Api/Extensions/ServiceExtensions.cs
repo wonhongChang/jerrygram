@@ -2,10 +2,12 @@
 using Jerrygram.Api.Data;
 using Jerrygram.Api.Interfaces;
 using Jerrygram.Api.Models;
+using Jerrygram.Api.Search;
 using Jerrygram.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Nest;
 using System.Text;
 
 namespace Jerrygram.Api.Extensions
@@ -64,9 +66,19 @@ namespace Jerrygram.Api.Extensions
                     };
                 });
 
+            services.AddSingleton<IElasticClient>(sp =>
+            {
+                var settings = new ConnectionSettings(new Uri("http://localhost:9200"))
+                    .DefaultIndex("posts")
+                    .EnableDebugMode();
+
+                return new ElasticClient(settings);
+            });
+
             services.AddScoped<JwtService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddSingleton<BlobService>();
+            services.AddScoped<ElasticService>();
         }
 
         public static void ConfigureMiddleware(this WebApplication app)
