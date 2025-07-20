@@ -1,24 +1,20 @@
-﻿using Jerrygram.Api.Data;
-using Jerrygram.Api.Models;
-using Jerrygram.Api.Search;
+﻿using Jerrygram.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace Jerrygram.Api.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class SearchController : ControllerBase
     {
-        private readonly ElasticService _elastic;
-        private readonly AppDbContext _context;
+        private readonly SearchService _searchService;
 
-        public SearchController(ElasticService elastic, AppDbContext context)
+        public SearchController(SearchService searchService)
         {
-            _elastic = elastic;
-            _context = context;
+            _searchService = searchService;
         }
 
         [HttpGet]
@@ -28,46 +24,21 @@ namespace Jerrygram.Api.Controllers
             if (string.IsNullOrWhiteSpace(query))
                 return BadRequest(new { error = "Query is required." });
 
-            var users = await _elastic.SearchUsersAsync(query);
-            var posts = await _elastic.SearchPostsAsync(query);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var result = await _searchService.SearchAsync(query, userId);
 
-            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var userId = string.IsNullOrEmpty(userIdStr) ? (Guid?)null : Guid.Parse(userIdStr);
+            return Ok(result);
+        }
 
-            List<Guid> followingIds = [];
-            if (userId != null)
-            {
-                followingIds = await _context.UserFollows
-                    .Where(f => f.FollowerId == userId)
-                    .Select(f => f.FollowingId)
-                    .ToListAsync();
-            }
+        [HttpGet("autocomplete")]
+        [AllowAnonymous]
+        public async Task<IActionResult> Autocomplete([FromQuery] string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return BadRequest("Query is required.");
 
-            var filteredPosts = posts.Where(p =>
-                p.Visibility == PostVisibility.Public.ToString() ||
-                (p.Visibility == PostVisibility.FollowersOnly.ToString() && userId != null && followingIds.Contains(p.UserId))
-            );
-
-            return Ok(new
-            {
-                query,
-                suggestions = new
-                {
-                    users = users.Select(u => new
-                    {
-                        u.Id,
-                        u.Username,
-                        u.ProfileImageUrl
-                    }),
-                    posts = filteredPosts.Select(p => new
-                    {
-                        p.Id,
-                        p.Caption,
-                        p.Username,
-                        p.CreatedAt
-                    })
-                }
-            });
+            var result = await _searchService.AutocompleteAsync(query);
+            return Ok(result);
         }
     }
 }

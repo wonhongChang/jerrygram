@@ -1,13 +1,10 @@
-﻿using Jerrygram.Api.Constants;
-using Jerrygram.Api.Data;
+﻿using Jerrygram.Api.Data;
 using Jerrygram.Api.Dtos;
-using Jerrygram.Api.Models;
+using Jerrygram.Api.Interfaces;
 using Jerrygram.Api.Search;
-using Jerrygram.Api.Search.IndexModels;
 using Jerrygram.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace Jerrygram.Api.Controllers
@@ -21,13 +18,15 @@ namespace Jerrygram.Api.Controllers
         private readonly BlobService _blobService;
         private readonly ILogger<PostController> _logger;
         private readonly ElasticService _elastic;
+        private readonly IPostService _postService;
 
-        public PostController(AppDbContext context, BlobService blobService, ILogger<PostController> logger, ElasticService elastic)
+        public PostController(AppDbContext context, BlobService blobService, ILogger<PostController> logger, ElasticService elastic, IPostService postService)
         {
             _context = context;
             _blobService = blobService;
             _logger = logger;
             _elastic = elastic;
+            _postService = postService;
         }
 
         /// <summary>
@@ -39,46 +38,19 @@ namespace Jerrygram.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> CreatePost([FromForm] PostUploadDto dto)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userIdStr, out var userId))
                 return Unauthorized();
 
-            if (string.IsNullOrWhiteSpace(dto.Caption) && (dto.Image == null || dto.Image.Length == 0))
-                return BadRequest("At least one of caption or image must be provided.");
-
-            string? imageUrl = null;
-            if (dto.Image != null && dto.Image.Length > 0)
+            try
             {
-                imageUrl = await _blobService.UploadAsync(dto.Image, BlobContainers.Post);
+                var post = await _postService.CreatePostAsync(dto, userId);
+                return CreatedAtAction(nameof(GetPostById), new { id = post.Id }, post);
             }
-
-            var post = new Post
+            catch (ArgumentException ex)
             {
-                Caption = dto.Caption,
-                ImageUrl = imageUrl,
-                CreatedAt = DateTime.UtcNow,
-                UserId = Guid.Parse(userId),
-                Visibility = dto.Visibility
-            };
-
-            _context.Posts.Add(post);
-            await _context.SaveChangesAsync();
-
-            var user = await _context.Users.FindAsync(post.UserId);
-            if (user != null)
-            {
-                await _elastic.IndexPostAsync(new PostIndex
-                {
-                    Id = post.Id,
-                    Caption = post.Caption,
-                    UserId = user.Id,
-                    Username = user.Username,
-                    CreatedAt = post.CreatedAt,
-                    Visibility = post.Visibility.ToString()
-                });
+                return BadRequest(new { error = ex.Message });
             }
-
-            return CreatedAtAction(nameof(GetPostById), new { id = post.Id }, post);
         }
 
         /// <summary>
@@ -90,64 +62,31 @@ namespace Jerrygram.Api.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdatePost(Guid id, [FromForm] UpdatePostDto dto)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userIdStr, out var userId))
                 return Unauthorized();
 
-            var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == id);
-            if (post == null)
-                return NotFound();
-
-            if (post.UserId != Guid.Parse(userId))
-                return Forbid();
-
-            // Update caption if provided
-            if (!string.IsNullOrWhiteSpace(dto.Caption))
-                post.Caption = dto.Caption;
-
-            // Update visibility if provided
-            if (dto.Visibility != null)
-                post.Visibility = dto.Visibility.Value;
-
-            // Replace image only if new image is provided
-            if (dto.Image != null && dto.Image.Length > 0)
+            try
             {
-                if (!string.IsNullOrEmpty(post.ImageUrl))
+                var updated = await _postService.UpdatePostAsync(id, dto, userId);
+
+                return Ok(new
                 {
-                    await _blobService.DeleteAsync(post.ImageUrl, BlobContainers.Post);
-                }
-
-                var newImageUrl = await _blobService.UploadAsync(dto.Image, BlobContainers.Post);
-                post.ImageUrl = newImageUrl;
-            }
-
-            await _context.SaveChangesAsync();
-
-            var user = await _context.Users
-                .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == post.UserId);
-
-            if (user != null)
-            {
-                await _elastic.IndexPostAsync(new PostIndex
-                {
-                    Id = post.Id,
-                    Caption = post.Caption ?? string.Empty,
-                    UserId = user.Id,
-                    Username = user.Username,
-                    CreatedAt = post.CreatedAt,
-                    Visibility = post.Visibility.ToString()
+                    updated.Id,
+                    updated.Caption,
+                    updated.ImageUrl,
+                    updated.CreatedAt,
+                    updated.Visibility
                 });
             }
-
-            return Ok(new
+            catch (UnauthorizedAccessException)
             {
-                post.Id,
-                post.Caption,
-                post.ImageUrl,
-                post.CreatedAt,
-                post.Visibility
-            });
+                return Forbid();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
         }
 
         /// <summary>
@@ -160,44 +99,11 @@ namespace Jerrygram.Api.Controllers
             if (page < 1 || pageSize < 1)
                 return BadRequest("Invalid pagination parameters.");
 
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var currentUserId = string.IsNullOrEmpty(userId) ? Guid.Empty : Guid.Parse(userId);
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = Guid.TryParse(userIdStr, out var parsed) ? parsed : (Guid?)null;
 
-            var query = _context.Posts
-                .Include(p => p.User)
-                .Include(p => p.Likes)
-                .Where(p => p.Visibility == PostVisibility.Public)
-                .OrderByDescending(p => p.CreatedAt);
-
-            var totalCount = await query.CountAsync();
-
-            var posts = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(p => new PostListItemDto
-                {
-                    Id = p.Id,
-                    Caption = p.Caption,
-                    ImageUrl = p.ImageUrl,
-                    CreatedAt = p.CreatedAt,
-                    Likes = p.Likes.Count,
-                    Liked = currentUserId != Guid.Empty && p.Likes.Any(l => l.UserId == currentUserId),
-                    User = new SimpleUserDto
-                    {
-                        Id = p.User.Id,
-                        Username = p.User.Username,
-                        ProfileImageUrl = p.User.ProfileImageUrl
-                    }
-                })
-                .ToListAsync();
-
-            return Ok(new PagedResult<PostListItemDto>
-            {
-                TotalCount = totalCount,
-                Page = page,
-                PageSize = pageSize,
-                Items = posts
-            });
+            var result = await _postService.GetAllPublicPostsAsync(userId, page, pageSize);
+            return Ok(result);
         }
 
         /// <summary>
@@ -208,46 +114,22 @@ namespace Jerrygram.Api.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetPostById(Guid id)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var currentUserId = string.IsNullOrEmpty(userId) ? Guid.Empty : Guid.Parse(userId);
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = Guid.TryParse(userIdStr, out var parsed) ? parsed : (Guid?)null;
 
-            var post = await _context.Posts
-                .Include(p => p.User)
-                .Include(p => p.Likes)
-                .FirstOrDefaultAsync(p => p.Id == id);
-
-            if (post == null)
-                return NotFound();
-
-            if (post.Visibility == PostVisibility.Private && post.UserId != currentUserId)
-                return Forbid();
-
-            if (post.Visibility == PostVisibility.FollowersOnly && post.UserId != currentUserId)
+            try
             {
-                var isFollower = await _context.UserFollows.AnyAsync(f =>
-                    f.FollowingId == post.UserId && f.FollowerId == currentUserId);
-
-                if (!isFollower)
-                    return Forbid();
+                var post = await _postService.GetPostByIdAsync(id, userId);
+                return Ok(post);
             }
-
-            var response = new
+            catch (UnauthorizedAccessException)
             {
-                post.Id,
-                post.Caption,
-                post.ImageUrl,
-                post.CreatedAt,
-                User = new
-                {
-                    post.User.Id,
-                    post.User.Username,
-                    post.User.ProfileImageUrl
-                },
-                Likes = post.Likes.Count,
-                Liked = currentUserId != Guid.Empty && post.Likes.Any(l => l.UserId == currentUserId)
-            };
-
-            return Ok(response);
+                return Forbid();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
         }
 
         /// <summary>
@@ -257,38 +139,22 @@ namespace Jerrygram.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePost(Guid id)
         {
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userIdStr, out var userId))
+                return Unauthorized("User not authenticated.");
+
             try
             {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (string.IsNullOrEmpty(userId))
-                    return Unauthorized("User not authenticated.");
-
-                var currentUserId = Guid.Parse(userId);
-
-                var post = await _context.Posts
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(p => p.Id == id);
-
-                if (post == null)
-                    return NotFound();
-
-                if (post.UserId != currentUserId)
-                    return Forbid();
-
-                // Remove the post from DB first
-                _context.Posts.Remove(new Post { Id = id });
-                await _context.SaveChangesAsync();
-
-                // Delete image from BlobStorage
-                if (!string.IsNullOrEmpty(post.ImageUrl))
-                {
-                    await _blobService.DeleteAsync(post.ImageUrl, BlobContainers.Post);
-                }
-
-                // Delete from Elasticsearch
-                await _elastic.DeletePostAsync(id);
-
+                await _postService.DeletePostAsync(id, userId);
                 return NoContent();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
             }
             catch (Exception ex)
             {
@@ -305,53 +171,23 @@ namespace Jerrygram.Api.Controllers
         [HttpPost("{id}/like")]
         public async Task<IActionResult> LikePost(Guid id)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userIdStr, out var userId))
+                return Unauthorized();
 
-            var currentUserId = Guid.Parse(userId);
-
-            var alreadyLiked = await _context.PostLikes
-                .AnyAsync(l => l.PostId == id && l.UserId == Guid.Parse(userId));
-
-            if (alreadyLiked)
-                return BadRequest("You have already liked this post.");
-
-            var post = await _context.Posts
-                .Include(p => p.User)
-                .FirstOrDefaultAsync(p => p.Id == id);
-
-            if (post == null)
-                return NotFound("Post not found.");
-
-            var like = new PostLike
+            try
             {
-                PostId = id,
-                UserId = Guid.Parse(userId),
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _context.PostLikes.Add(like);
-
-            if (post.UserId != currentUserId)
-            {
-                var user = await _context.Users.FindAsync(currentUserId);
-                if (user != null)
-                {
-                    _context.Notifications.Add(new Notification
-                    {
-                        RecipientId = post.UserId,
-                        FromUserId = currentUserId,
-                        Type = NotificationType.Like,
-                        PostId = id,
-                        Message = $"{user.Username} liked your post.",
-                        CreatedAt = DateTime.UtcNow
-                    });
-                }
+                await _postService.LikePostAsync(id, userId);
+                return Ok();
             }
-
-            await _context.SaveChangesAsync();
-
-            return Ok();
+            catch (KeyNotFoundException)
+            {
+                return NotFound("Post not found.");
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         /// <summary>
@@ -362,35 +198,19 @@ namespace Jerrygram.Api.Controllers
         [HttpDelete("{id}/like")]
         public async Task<IActionResult> UnlikePost(Guid id)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userIdStr, out var userId))
+                return Unauthorized();
 
-            var currentUserId = Guid.Parse(userId);
-
-            var like = await _context.PostLikes
-                .FirstOrDefaultAsync(l => l.PostId == id && l.UserId == Guid.Parse(userId));
-
-            if (like == null)
-                return NotFound();
-
-            _context.PostLikes.Remove(like);
-
-            var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == id);
-            if (post != null && post.UserId != currentUserId)
+            try
             {
-                var notification = await _context.Notifications.FirstOrDefaultAsync(n =>
-                    n.Type == NotificationType.Like &&
-                    n.PostId == id &&
-                    n.FromUserId == currentUserId &&
-                    n.RecipientId == post.UserId);
-
-                if (notification != null)
-                    _context.Notifications.Remove(notification);
+                await _postService.UnlikePostAsync(id, userId);
+                return NoContent();
             }
-
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (KeyNotFoundException)
+            {
+                return NotFound("Like not found.");
+            }
         }
 
         /// <summary>
@@ -403,50 +223,12 @@ namespace Jerrygram.Api.Controllers
             if (page < 1 || pageSize < 1)
                 return BadRequest("Invalid pagination parameters.");
 
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
-            var currentUserId = Guid.Parse(userId);
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userIdStr, out var userId))
+                return Unauthorized();
 
-            var followingIds = await _context.UserFollows
-                .Where(f => f.FollowerId == currentUserId)
-                .Select(f => f.FollowingId)
-                .ToListAsync();
-
-            var query = _context.Posts
-                .Include(p => p.User)
-                .Include(p => p.Likes)
-                .Where(p => followingIds.Contains(p.UserId))
-                .OrderByDescending(p => p.CreatedAt);
-
-            var totalCount = await query.CountAsync();
-
-            var posts = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(p => new PostListItemDto
-                {
-                    Id = p.Id,
-                    Caption = p.Caption,
-                    ImageUrl = p.ImageUrl,
-                    CreatedAt = p.CreatedAt,
-                    Likes = p.Likes.Count,
-                    Liked = p.Likes.Any(l => l.UserId == currentUserId),
-                    User = new SimpleUserDto
-                    {
-                        Id = p.User.Id,
-                        Username = p.User.Username,
-                        ProfileImageUrl = p.User.ProfileImageUrl
-                    }
-                })
-                .ToListAsync();
-
-            return Ok(new PagedResult<PostListItemDto>
-            {
-                TotalCount = totalCount,
-                Page = page,
-                PageSize = pageSize,
-                Items = posts
-            });
+            var result = await _postService.GetUserFeedAsync(userId, page, pageSize);
+            return Ok(result);
         }
 
         /// <summary>
@@ -461,31 +243,8 @@ namespace Jerrygram.Api.Controllers
             if (page < 1 || pageSize < 1)
                 return BadRequest("Invalid pagination parameters.");
 
-            var query = _context.PostLikes
-                .Where(l => l.PostId == id)
-                .Include(l => l.User)
-                .OrderByDescending(l => l.CreatedAt);
-
-            var totalCount = await query.CountAsync();
-
-            var users = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(l => new SimpleUserDto
-                {
-                    Id = l.User.Id,
-                    Username = l.User.Username,
-                    ProfileImageUrl = l.User.ProfileImageUrl
-                })
-                .ToListAsync();
-
-            return Ok(new PagedResult<SimpleUserDto>
-            {
-                TotalCount = totalCount,
-                Page = page,
-                PageSize = pageSize,
-                Items = users
-            });
+            var result = await _postService.GetPostLikesAsync(id, page, pageSize);
+            return Ok(result);
         }
     }
 }
