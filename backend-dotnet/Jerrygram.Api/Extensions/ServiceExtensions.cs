@@ -2,6 +2,7 @@
 using Jerrygram.Api.Data;
 using Jerrygram.Api.Interfaces;
 using Jerrygram.Api.Models;
+using Jerrygram.Api.Repositories;
 using Jerrygram.Api.Search;
 using Jerrygram.Api.Search.IndexModels;
 using Jerrygram.Api.Services;
@@ -77,10 +78,18 @@ namespace Jerrygram.Api.Extensions
                 return new ElasticClient(settings);
             });
 
+            services.AddHttpClient<RecommendClient>(client =>
+            {
+                client.BaseAddress = new Uri("http://localhost:3001");
+                client.Timeout = TimeSpan.FromSeconds(3);
+            });
+
             services.AddScoped<JwtService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddSingleton<BlobService>();
             services.AddScoped<ElasticService>();
+            services.AddScoped<IPostService, PostService>();
+            services.AddScoped<IPostRepository, PostRepository>();
         }
 
         public static void ConfigureMiddleware(this WebApplication app)

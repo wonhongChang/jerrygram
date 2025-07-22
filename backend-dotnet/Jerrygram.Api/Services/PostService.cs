@@ -16,18 +16,24 @@ namespace Jerrygram.Api.Services
         private readonly BlobService _blobService;
         private readonly ElasticService _elastic;
 
-        public PostService(AppDbContext context, BlobService blobService, ElasticService elastic)
+        private readonly IPostRepository _postRepository;
+        private readonly RecommendClient _recommendClient;
+
+        public PostService(AppDbContext context, BlobService blobService, ElasticService elastic, IPostRepository postRepository, RecommendClient recommendClient)
         {
             _context = context;
             _blobService = blobService;
             _elastic = elastic;
+
+            _postRepository = postRepository;
+            _recommendClient = recommendClient;
         }
 
         /// <summary>
         /// Creates a new post with the specified caption, image, and visibility settings, and associates it with the
         /// given user.
         /// </summary>
-        public async Task<Post> CreatePostAsync(PostUploadDto dto, Guid userId)
+        public async Task<PostListItemDto> CreatePostAsync(PostUploadDto dto, Guid userId)
         {
             if (string.IsNullOrWhiteSpace(dto.Caption) && (dto.Image == null || dto.Image.Length == 0))
                 throw new ArgumentException("At least one of caption or image must be provided.");
@@ -94,7 +100,21 @@ namespace Jerrygram.Api.Services
                 });
             }
 
-            return post;
+            return new PostListItemDto
+            {
+                Id = post.Id,
+                Caption = post.Caption,
+                ImageUrl = post.ImageUrl,
+                CreatedAt = post.CreatedAt,
+                Likes = 0,
+                Liked = false,
+                User = new SimpleUserDto
+                {
+                    Id = user!.Id,
+                    Username = user.Username,
+                    ProfileImageUrl = user.ProfileImageUrl
+                }
+            };
         }
 
         /// <summary>
@@ -455,6 +475,21 @@ namespace Jerrygram.Api.Services
                 PageSize = pageSize,
                 Items = users
             };
+        }
+
+        public async Task<List<PostListItemDto>> GetExplorePostsAsync(Guid? userId)
+        {
+            if (userId == null)
+            {
+                return await _postRepository.GetPopularPostsAsync();
+            }
+
+            var recommended = await _recommendClient.GetRecommendationsAsync(userId.Value);
+
+            if (recommended.Count > 0)
+                return recommended;
+
+            return await _postRepository.GetPopularPostsNotFollowedAsync(userId.Value);
         }
     }
 }

@@ -16,5 +16,32 @@ services:
     volumes:
       - esdata:/usr/share/elasticsearch/data
 
+  recommend:
+    build:
+      context: ./jerrygram-recommend
+    container_name: jg-recommend
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - ELASTICSEARCH_URL=http://es8:9200
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - elasticsearch
+    restart: always
+
+  postgres:
+    image: postgres:17
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: jerrygram
+    ports:
+      - "15432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
 volumes:
   esdata:
+  pgdata:

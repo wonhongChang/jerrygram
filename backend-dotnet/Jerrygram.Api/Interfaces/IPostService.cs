@@ -5,7 +5,7 @@ namespace Jerrygram.Api.Interfaces
 {
     public interface IPostService
     {
-        Task<Post> CreatePostAsync(PostUploadDto dto, Guid userId);
+        Task<PostListItemDto> CreatePostAsync(PostUploadDto dto, Guid userId);
         Task<Post> UpdatePostAsync(Guid postId, UpdatePostDto dto, Guid userId);
         Task<PagedResult<PostListItemDto>> GetAllPublicPostsAsync(Guid? currentUserId, int page, int pageSize);
         Task<PostListItemDto> GetPostByIdAsync(Guid postId, Guid? currentUserId);
@@ -14,5 +14,6 @@ namespace Jerrygram.Api.Interfaces
         Task UnlikePostAsync(Guid postId, Guid userId);
         Task<PagedResult<PostListItemDto>> GetUserFeedAsync(Guid userId, int page, int pageSize);
         Task<PagedResult<SimpleUserDto>> GetPostLikesAsync(Guid postId, int page, int pageSize);
+        Task<List<PostListItemDto>> GetExplorePostsAsync(Guid? userId);
     }
 }
