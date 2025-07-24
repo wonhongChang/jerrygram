@@ -1,33 +1,67 @@
 import { getEmbedding } from './embeddingService.js';
 import { cosineSimilarity } from '../utils/cosine.js';
+import { logger } from '../middleware/logger.js';
+import { APP_CONFIG } from '../config/app.js';
 
 /**
  * Recommend posts from candidates based on user caption embedding.
  * @param {string[]} userCaptions - recent liked captions
  * @param {Object[]} postCandidates - candidate posts with caption
+ * @param {number} limit - maximum number of recommendations to return
  */
-export async function recommendPosts(userCaptions, postCandidates) {
-    // 🔧 TODO: Replace fallback captions with user-liked caption lookup from DB
-  const fallbackCaptions = [
-    "Watching the sunset at the beach",
-    "Exploring the mountain trail"
-  ];
-  const captionsToUse = userCaptions?.length > 0 ? userCaptions : fallbackCaptions;
-  const input = captionsToUse.join('. ');
+export async function recommendPosts(userCaptions, postCandidates, limit = APP_CONFIG.maxRecommendations) {
+  try {
+    if (!userCaptions?.length) {
+      throw new Error('User captions are required');
+    }
 
-  //const input = userCaptions.join('. ');
-  const userVector = await getEmbedding(input);
+    if (!postCandidates?.length) {
+      throw new Error('Post candidates are required');
+    }
 
-  // calculate similarity
-  const scored = await Promise.all(
-    postCandidates.map(async post => {
-      const postVector = await getEmbedding(post.caption);
-      const score = cosineSimilarity(userVector, postVector);
-      return { ...post, score };
-    })
-  );
+    const input = userCaptions.join('. ');
+    logger.info(`Generating user embedding from ${userCaptions.length} captions`);
+    
+    const userVector = await getEmbedding(input);
 
-  return scored
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 10); // return top 10
+    logger.info(`Calculating similarity scores for ${postCandidates.length} posts`);
+    
+    // Calculate similarity in batches to avoid overwhelming the API
+    const batchSize = 10;
+    const scored = [];
+    
+    for (let i = 0; i < postCandidates.length; i += batchSize) {
+      const batch = postCandidates.slice(i, i + batchSize);
+      
+      const batchScored = await Promise.all(
+        batch.map(async post => {
+          try {
+            const postVector = await getEmbedding(post.caption || '');
+            const score = cosineSimilarity(userVector, postVector);
+            
+            // Create new post with score
+            const scoredPost = { ...post, score };
+            return scoredPost;
+          } catch (error) {
+            logger.warn(`Failed to score post ${post.id}:`, error.message);
+            return { ...post, score: 0 };
+          }
+        })
+      );
+      
+      scored.push(...batchScored);
+    }
+
+    const recommendations = scored
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+      .map(post => ({ ...post.toJSON?.() || post, score: post.score }));
+
+    logger.success(`Generated ${recommendations.length} recommendations`);
+    return recommendations;
+    
+  } catch (error) {
+    logger.error('Failed to generate recommendations', error);
+    throw error;
+  }
 }

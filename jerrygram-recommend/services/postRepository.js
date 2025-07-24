@@ -1,13 +1,8 @@
-import pg from 'pg';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const { Pool } = pg;
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
-});
+import { pool } from '../config/database.js';
+import { Post } from '../models/Post.js';
+import { APP_CONFIG } from '../config/app.js';
+import { logger } from '../middleware/logger.js';
+import { validateUserId } from '../validation/validators.js';
 
 /**
  * Get recent liked post captions for a user.
@@ -15,18 +10,29 @@ const pool = new Pool({
  * @returns {Promise<string[]>}
  */
 export async function getLikedCaptionsByUserId(userId) {
+  validateUserId(userId);
+
   const client = await pool.connect();
   try {
+    logger.info(`Fetching liked captions for user: ${userId}`);
+    
     const result = await client.query(
       `SELECT p."Caption"
        FROM "PostLikes" pl
        JOIN "Posts" p ON pl."PostId" = p."Id"
        WHERE pl."UserId" = $1
        ORDER BY pl."CreatedAt" DESC
-       LIMIT 10`,
-      [userId]
+       LIMIT $2`,
+      [userId, APP_CONFIG.maxUserCaptions]
     );
-    return result.rows.map(row => row.Caption).filter(Boolean);
+    
+    const captions = result.rows.map(row => row.Caption).filter(Boolean);
+    logger.info(`Found ${captions.length} liked captions for user: ${userId}`);
+    
+    return captions;
+  } catch (error) {
+    logger.error(`Failed to fetch liked captions for user: ${userId}`, error);
+    throw error;
   } finally {
     client.release();
   }
@@ -35,6 +41,8 @@ export async function getLikedCaptionsByUserId(userId) {
 export async function getCandidatePostsFromDb() {
   const client = await pool.connect();
   try {
+    logger.info('Fetching candidate posts from database');
+    
     const result = await client.query(
       `SELECT p."Id", p."Caption", p."ImageUrl", p."CreatedAt",
           COUNT(pl."Id") AS "Likes",
@@ -42,26 +50,21 @@ export async function getCandidatePostsFromDb() {
         FROM "Posts" p
         JOIN "Users" u ON p."UserId" = u."Id"
         LEFT JOIN "PostLikes" pl ON pl."PostId" = p."Id"
-        WHERE p."Visibility" = 0
+        WHERE p."Visibility" = 0 AND p."Caption" IS NOT NULL AND p."Caption" != ''
         GROUP BY p."Id", p."Caption", p."ImageUrl", p."CreatedAt",
                     u."Id", u."Username", u."ProfileImageUrl"
         ORDER BY p."CreatedAt" DESC
-        LIMIT 100`
+        LIMIT $1`,
+      [APP_CONFIG.maxCandidatePosts]
     );
 
-    return result.rows.map(row => ({
-      id: row.Id,
-      caption: row.Caption,
-      imageUrl: row.ImageUrl,
-      createdAt: row.CreatedAt,
-      likes: parseInt(row.Likes, 10),
-      liked: false,
-      user: {
-        id: row.UserId,
-        username: row.Username,
-        profileImageUrl: row.ProfileImageUrl
-      }
-    }));
+    const posts = result.rows.map(row => Post.fromDbRow(row));
+    logger.info(`Found ${posts.length} candidate posts`);
+    
+    return posts;
+  } catch (error) {
+    logger.error('Failed to fetch candidate posts', error);
+    throw error;
   } finally {
     client.release();
   }

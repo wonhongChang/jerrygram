@@ -15,6 +15,11 @@ services:
       - ES_JAVA_OPTS=-Xms1g -Xmx1g
     volumes:
       - esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   recommend:
     build:
@@ -24,14 +29,24 @@ services:
       - "3001:3001"
     environment:
       - PORT=3001
-      - ELASTICSEARCH_URL=http://es8:9200
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:test@postgres:5432/jerrygram
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ENABLE_CACHE=true
+      - CORS_ORIGINS=http://localhost:3000,https://localhost:5001
     depends_on:
+      - postgres
       - elasticsearch
     restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   postgres:
     image: postgres:17
+    container_name: jg-postgres
     restart: always
     environment:
       POSTGRES_USER: postgres
@@ -41,6 +56,11 @@ services:
       - "15432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
 volumes:
   esdata:
