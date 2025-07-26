@@ -623,8 +623,10 @@ FodyWeavers.xsd
 # Additional files built by Visual Studio
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudio,java,node,android,xcode
-/backend-dotnet/Jerrygram.Api/appsettings.json
-/backend-dotnet/Jerrygram.Api/appsettings.Development.json
+appsettings.json
+appsettings.Development.json
 
 # jerrygram-recommend (Node.js microservice)
 jerrygram-recommend/node_modules/
+/.claude
+/docs
