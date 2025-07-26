@@ -16,4 +16,11 @@ export const APP_CONFIG = {
   // Cache settings
   enableCache: process.env.ENABLE_CACHE === 'true' || process.env.NODE_ENV === 'production',
   cacheExpiry: Math.max(60, parseInt(process.env.CACHE_EXPIRY) || 3600), // Min 1 minute
+
+  // Redis settings
+  redis: {
+    enabled: process.env.USE_REDIS_CACHE === 'true' || process.env.NODE_ENV === 'production',
+    url: process.env.REDIS_URL || 'redis://localhost:6379',
+    password: process.env.REDIS_PASSWORD
+  }
 };

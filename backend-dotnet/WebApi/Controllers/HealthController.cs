@@ -2,6 +2,7 @@ using Persistence.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
+using Application.Interfaces;
 
 namespace WebApi.Controllers
 {
@@ -11,11 +12,15 @@ namespace WebApi.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<HealthController> _logger;
+        private readonly ISearchService _searchService;
+        private readonly ICacheService _cacheService;
 
-        public HealthController(AppDbContext context, ILogger<HealthController> logger)
+        public HealthController(AppDbContext context, ILogger<HealthController> logger, ISearchService searchService, ICacheService cacheService)
         {
             _context = context;
             _logger = logger;
+            _searchService = searchService;
+            _cacheService = cacheService;
         }
 
         [HttpGet]
@@ -130,6 +135,35 @@ namespace WebApi.Controllers
         {
             return System.Reflection.Assembly.GetExecutingAssembly()
                 .GetName().Version?.ToString() ?? "Unknown";
+        }
+
+        [HttpGet("cache")]
+        public async Task<IActionResult> CacheHealth()
+        {
+            try
+            {
+                var testResult = await _searchService.AutocompleteAsync("test");
+
+                await _cacheService.SetAsync("health_check", "ok", TimeSpan.FromMinutes(1));
+                var healthCheck = await _cacheService.GetAsync<string>("health_check");
+
+                return Ok(new
+                {
+                    status = "healthy",
+                    redis_connected = healthCheck == "ok",
+                    autocomplete_working = testResult != null,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    status = "unhealthy",
+                    error = ex.Message,
+                    timestamp = DateTime.UtcNow
+                });
+            }
         }
     }
 

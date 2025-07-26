@@ -1,6 +1,7 @@
 using Application.Common;
 using Application.Interfaces;
 using Domain.Enums;
+using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Services
 {
@@ -10,17 +11,23 @@ namespace Infrastructure.Services
         private readonly IUserFollowRepository _userFollowRepository;
         private readonly IPostTagRepository _postTagRepository;
         private readonly IElasticService _elastic;
+        private readonly ICacheService _cacheService;
+        private readonly ILogger<SearchService> _logger;
 
         public SearchService(
             IPostRepository postRepository,
             IUserFollowRepository userFollowRepository,
             IPostTagRepository postTagRepository,
-            IElasticService elastic)
+            IElasticService elastic,
+            ICacheService cacheService,
+            ILogger<SearchService> logger)
         {
             _postRepository = postRepository;
             _userFollowRepository = userFollowRepository;
             _postTagRepository = postTagRepository;
             _elastic = elastic;
+            _cacheService = cacheService;
+            _logger = logger;
         }
 
         public async Task<object> SearchAsync(string query, string? userIdStr)
@@ -80,6 +87,28 @@ namespace Infrastructure.Services
 
         public async Task<object> AutocompleteAsync(string query)
         {
+            var normalizedQuery = query.Trim().ToLower();
+            var cacheKey = $"autocomplete:{normalizedQuery}";
+
+            var cached = await _cacheService.GetAsync<object>(cacheKey);
+            if (cached != null)
+            {
+                _logger.LogDebug("Autocomplete cache hit for query: {Query}", query);
+                return cached;
+            }
+
+            _logger.LogDebug("Autocomplete cache miss for query: {Query}", query);
+
+            var result = await GetAutocompleteFromElasticsearch(query);
+
+            await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(5));
+
+            _logger.LogInformation("Autocomplete result cached for query: {Query}", query);
+            return result;
+        }
+
+        private async Task<object> GetAutocompleteFromElasticsearch(string query)
+        {
             query = query.Trim();
 
             if (query.StartsWith('#'))
@@ -88,13 +117,14 @@ namespace Infrastructure.Services
                 var tags = await _elastic.SearchTagsAsync(keyword, 3);
                 var users = await _elastic.SearchUsersAsync(keyword, 10);
 
-                if (tags.Any())
+                if (tags.Count != 0)
                 {
                     return new
                     {
                         mode = "tag",
                         tags = tags.Select(t => t.Name),
-                        users = users.Select(u => u.Username)
+                        users = users.Select(u => u.Username),
+                        cached_at = DateTime.UtcNow
                     };
                 }
                 else
@@ -104,7 +134,8 @@ namespace Infrastructure.Services
                         mode = "tag",
                         tags = Array.Empty<string>(),
                         users = Array.Empty<string>(),
-                        fallback = $"Search for \"{query}\""
+                        fallback = $"Search for \"{query}\"",
+                        cached_at = DateTime.UtcNow
                     };
                 }
             }
@@ -116,7 +147,8 @@ namespace Infrastructure.Services
             {
                 mode = "default",
                 tags = tagResults.Select(t => t.Name),
-                users = userResults.Select(u => u.Username)
+                users = userResults.Select(u => u.Username),
+                cached_at = DateTime.UtcNow
             };
         }
     }

@@ -70,8 +70,7 @@ namespace Application.Commands.Posts
             await IndexPostAsync(post);
 
             // Clear relevant caches
-            _cacheService.RemoveByPattern("public_posts");
-            _cacheService.RemoveByPattern($"user_feed_{command.UserId}");
+            await InvalidateRelatedCaches(post);
 
             _logger.LogInformation("Post {PostId} created successfully", post.Id);
 
@@ -124,6 +123,49 @@ namespace Application.Commands.Posts
                 _logger.LogError(ex, "Failed to index post {PostId}", post.Id);
                 // Don't throw - indexing failure shouldn't fail post creation
             }
+        }
+
+        private async Task InvalidateRelatedCaches(Post post)
+        {
+            _cacheService.RemoveByPattern("public_posts");
+            _cacheService.RemoveByPattern($"user_feed_{post.UserId}");
+
+            var hashtags = ExtractHashtagsFromCaption(post.Caption);
+            foreach (var hashtag in hashtags)
+            {
+                await _cacheService.RemoveAsync($"autocomplete:#{hashtag}");
+                await _cacheService.RemoveAsync($"autocomplete:{hashtag}");
+
+                if (hashtag.Length >= 2)
+                {
+                    var prefix = hashtag.Substring(0, 2);
+                    _cacheService.RemoveByPattern($"autocomplete:#{prefix}*");
+                    _cacheService.RemoveByPattern($"autocomplete:{prefix}*");
+                }
+            }
+        }
+
+        private List<string> ExtractHashtagsFromCaption(string? caption)
+        {
+            if (string.IsNullOrEmpty(caption)) return new List<string>();
+
+            var hashtags = new List<string>();
+            var words = caption.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var word in words)
+            {
+                if (word.StartsWith('#') && word.Length > 1)
+                {
+                    var hashtag = word.Substring(1).ToLower();
+                    hashtag = new string([.. hashtag.Where(c => char.IsLetterOrDigit(c))]);
+                    if (!string.IsNullOrEmpty(hashtag))
+                    {
+                        hashtags.Add(hashtag);
+                    }
+                }
+            }
+
+            return hashtags.Distinct().ToList();
         }
 
         private async Task<PostListItemDto> BuildPostListItemDto(Post post)

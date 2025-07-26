@@ -81,9 +81,9 @@ namespace Infrastructure.Services
             var response = await _client.SearchAsync<UserIndex>(s => s
                 .Size(size)
                 .Query(q => q
-                    .Wildcard(w => w
+                    .Prefix(p => p
                         .Field("username.keyword")
-                        .Value($"{query.ToLower()}*")
+                        .Value(query.ToLower())
                     )
                 )
             );
@@ -93,18 +93,32 @@ namespace Infrastructure.Services
 
         public async Task<List<TagIndex>> SearchTagsAsync(string query, int size = 3)
         {
-            var response = await _client.SearchAsync<TagIndex>(s => s
-                .Index("tags")
-                .Size(size)
-                .Query(q => q
-                    .MatchPhrasePrefix(m => m
-                        .Field(f => f.Name)
-                        .Query(query.ToLower())
+            try
+            {
+                var response = await _client.SearchAsync<TagIndex>(s => s
+                    .Index("tags")
+                    .Size(size)
+                    .Query(q => q
+                        .MatchPhrasePrefix(m => m
+                            .Field(f => f.Name)
+                            .Query(query.ToLower())
+                        )
                     )
-                )
-            );
+                );
 
-            return [.. response.Documents];
+                if (!response.IsValid)
+                {
+                    // Index not found or other error - return empty list
+                    return new List<TagIndex>();
+                }
+
+                return [.. response.Documents];
+            }
+            catch (Exception)
+            {
+                // Return empty list if tags index doesn't exist
+                return new List<TagIndex>();
+            }
         }
     }
 }

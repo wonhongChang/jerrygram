@@ -1,3 +1,4 @@
+using Application.Interfaces;
 using Domain.Entities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -7,7 +8,7 @@ using System.Text;
 
 namespace Infrastructure.Services
 {
-    public class JwtService
+    public class JwtService : IJwtService
     {
         private readonly IConfiguration _configuration;
 

@@ -1,27 +1,31 @@
-using FluentValidation;
-using FluentValidation.AspNetCore;
-using WebApi.Configurations;
-using WebApi.Middleware;
 using Application.Commands;
+using Application.Commands.Auth;
 using Application.Commands.Comments;
 using Application.Commands.Posts;
 using Application.Commands.Users;
 using Application.DTOs;
 using Application.Interfaces;
 using Application.Queries;
+using Application.Queries.Auth;
 using Application.Queries.Comments;
 using Application.Queries.Notifications;
 using Application.Queries.Posts;
 using Application.Queries.Users;
 using Domain.Entities;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Infrastructure.Services;
-using Persistence.Data;
-using Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Nest;
+using Persistence.Data;
+using Persistence.Repositories;
+using StackExchange.Redis;
 using System.Text;
+using Application.Common;
+using WebApi.Configurations;
+using WebApi.Middleware;
 
 namespace WebApi.Extensions
 {
@@ -31,7 +35,40 @@ namespace WebApi.Extensions
         {
             services.AddControllers();
             services.AddEndpointsApiExplorer();
-            
+
+            // Add Redis
+            services.Configure<RedisCacheSettings>(config.GetSection("RedisCache"));
+            services.Configure<CacheSettings>(config.GetSection("Cache"));
+
+            var redisConnectionString = config.GetConnectionString("Redis");
+            var redisPassword = config["RedisCache:Password"];
+
+            if (!string.IsNullOrEmpty(redisPassword))
+            {
+                redisConnectionString += $",password={redisPassword}";
+            }
+
+            services.AddSingleton<IConnectionMultiplexer>(sp =>
+            {
+                var configuration = ConfigurationOptions.Parse(redisConnectionString);
+                configuration.AbortOnConnectFail = false;
+                configuration.ConnectRetry = 2;
+                configuration.ConnectTimeout = 1000;  // 1 second
+                configuration.SyncTimeout = 1000;     // 1 second
+                configuration.AsyncTimeout = 1000;    // 1 second
+                configuration.CommandMap = CommandMap.Create(new HashSet<string>
+                {
+                    "FLUSHALL", "FLUSHDB", "SHUTDOWN", "DEBUG"
+                }, available: false);
+                return ConnectionMultiplexer.Connect(configuration);
+            });
+
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redisConnectionString;
+                options.InstanceName = "Jerrygram";
+            });
+
             // Add FluentValidation
             services.AddFluentValidationAutoValidation();
             services.AddValidatorsFromAssemblyContaining<WebApi.Validators.RegisterDtoValidator>();
@@ -112,17 +149,20 @@ namespace WebApi.Extensions
             });
 
             // Register Infrastructure Services
-            services.AddScoped<IAuthService, AuthService>();
+            // services.AddScoped<IAuthService, AuthService>();
             services.AddSingleton<IBlobService, BlobService>();
             services.AddScoped<IElasticService, ElasticService>();
             services.AddScoped<ISearchService, SearchService>();
-            services.AddScoped<ICacheService, CacheService>();
-            services.AddScoped<JwtService>();
+            services.AddScoped<IJwtService, JwtService>();
 
-            // Add Memory Cache
+            // Cache Services
             services.AddMemoryCache();
+            services.AddScoped<CacheService>();
+            services.AddScoped<RedisCacheService>();
+            services.AddScoped<ICacheService, HybridCacheService>();
 
             // Register Command Handlers
+            services.AddScoped<ICommandHandler<RegisterUserCommand, (string token, User user)>, RegisterUserCommandHandler>();
             services.AddScoped<ICommandHandler<CreatePostCommand, PostListItemDto>, CreatePostCommandHandler>();
             services.AddScoped<ICommandHandler<LikePostCommand>, LikePostCommandHandler>();
             services.AddScoped<ICommandHandler<DeletePostCommand>, DeletePostCommandHandler>();
@@ -135,6 +175,7 @@ namespace WebApi.Extensions
             services.AddScoped<ICommandHandler<DeleteCommentCommand>, DeleteCommentCommandHandler>();
 
             // Register Query Handlers
+            services.AddScoped<IQueryHandler<LoginQuery, string>, LoginQueryHandler>();
             services.AddScoped<IQueryHandler<GetPostByIdQuery, PostListItemDto>, GetPostByIdQueryHandler>();
             services.AddScoped<IQueryHandler<GetPublicPostsQuery, PagedResult<PostListItemDto>>, GetPublicPostsQueryHandler>();
             services.AddScoped<IQueryHandler<GetUserFeedQuery, PagedResult<PostListItemDto>>, GetUserFeedQueryHandler>();
@@ -161,7 +202,7 @@ namespace WebApi.Extensions
             services.AddScoped<IUserFollowRepository, UserFollowRepository>();
         }
 
-        public static void ConfigureMiddleware(this WebApplication app)
+        public static async Task ConfigureMiddleware(this WebApplication app)
         {
             // Security headers (should be first)
             app.UseMiddleware<SecurityHeadersMiddleware>();
@@ -187,6 +228,7 @@ namespace WebApi.Extensions
             using var scope = app.Services.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             context.Database.Migrate();
+
 
             if (!context.Users.Any(u => u.Email == "jerry@gram.com"))
             {

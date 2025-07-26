@@ -1,5 +1,5 @@
 import { openai, EMBEDDING_CONFIG } from '../config/openai.js';
-import { embeddingCache } from '../cache/embeddingCache.js';
+import { hybridEmbeddingCache } from '../cache/hybridEmbeddingCache.js';
 import { logger } from '../middleware/logger.js';
 import { validateText } from '../validation/validators.js';
 
@@ -17,22 +17,22 @@ export async function getEmbedding(text) {
     }
 
     // Check cache first
-    const cached = embeddingCache.get(text);
+    const cached = await hybridEmbeddingCache.get(normalizedText);
     if (cached) {
       return cached;
     }
 
-    logger.info('Generating embedding for text');
+    logger.info('Generating embedding for text (cache miss)');
     
-    const res = await openai.embeddings.create({
-      input: text.trim(),
-      model: EMBEDDING_CONFIG.model
+    const response = await openai.embeddings.create({
+      model: "text-embedding-ada-002",
+      input: normalizedText,
     });
 
-    const embedding = res.data[0].embedding;
+    const embedding = response.data[0].embedding;
     
     // Cache the result
-    embeddingCache.set(text, embedding);
+    await hybridEmbeddingCache.set(normalizedText, embedding);
     
     return embedding;
   } catch (error) {
