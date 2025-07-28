@@ -633,3 +633,4 @@ jerrygram-recommend/node_modules/
 /backend-java/src/main/resources/application-dev.yml
 /backend-java/src/main/resources/application.yml
 /backend-java/README-java.md
+!/backend-java/gradle/wrapper/gradle-wrapper.jar
