@@ -630,3 +630,6 @@ appsettings.Development.json
 jerrygram-recommend/node_modules/
 /.claude
 /docs
+/backend-java/src/main/resources/application-dev.yml
+/backend-java/src/main/resources/application.yml
+/backend-java/README-java.md
