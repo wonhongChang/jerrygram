@@ -43,6 +43,7 @@ namespace Application.Commands.Posts
 
             // Create like
             await _postLikeRepository.CreateLikeAsync(command.PostId, command.UserId);
+            await _postLikeRepository.SaveChangesAsync();
 
             // Clear relevant caches
             await _cacheService.RemoveAsync($"post_details_{command.PostId}");

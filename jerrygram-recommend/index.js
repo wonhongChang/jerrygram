@@ -41,12 +41,6 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-app.listen(APP_CONFIG.port, () => {
-  logger.success(`🧠 Jerrygram Recommend API running on port ${APP_CONFIG.port}`);
-  logger.info(`Environment: ${APP_CONFIG.nodeEnv}`);
-  logger.info(`Cache enabled: ${APP_CONFIG.enableCache}`);
-});
-
 async function startServer() {
   try {
     if (APP_CONFIG.redis.enabled) {

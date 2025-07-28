@@ -11,7 +11,9 @@ namespace Infrastructure.Services
 
         public BlobService(IConfiguration config)
         {
-            _connectionString = config["AzureBlobStorage:ConnectionString"]!;
+            // SECURITY: Use environment variable for production
+            _connectionString = config["AzureBlobStorage:ConnectionString"] 
+                ?? throw new InvalidOperationException("Azure Blob Storage connection string must be configured via environment variable 'AzureBlobStorage__ConnectionString'");
         }
 
         private BlobContainerClient GetContainer(string containerName)

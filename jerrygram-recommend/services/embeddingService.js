@@ -10,6 +10,7 @@ import { validateText } from '../validation/validators.js';
  */
 export async function getEmbedding(text) {
   try {
+    logger.info('Generating embedding test1');
     validateText(text, 'text', EMBEDDING_CONFIG.maxTokens);
     
     if (!text || text.trim().length === 0) {
@@ -17,7 +18,7 @@ export async function getEmbedding(text) {
     }
 
     // Check cache first
-    const cached = await hybridEmbeddingCache.get(normalizedText);
+    const cached = await hybridEmbeddingCache.get(text);
     if (cached) {
       return cached;
     }
@@ -25,14 +26,14 @@ export async function getEmbedding(text) {
     logger.info('Generating embedding for text (cache miss)');
     
     const response = await openai.embeddings.create({
-      model: "text-embedding-ada-002",
-      input: normalizedText,
+      model: EMBEDDING_CONFIG.model,
+      input: text.trim()
     });
 
     const embedding = response.data[0].embedding;
     
     // Cache the result
-    await hybridEmbeddingCache.set(normalizedText, embedding);
+    await hybridEmbeddingCache.set(text, embedding);
     
     return embedding;
   } catch (error) {

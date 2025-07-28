@@ -6,6 +6,7 @@ import { getHealthMetrics } from '../middleware/monitoring.js';
 
 export const getRecommendations = async (req, res, next) => {
   try {
+    logger.info(`Processing recommendation request for user`);
     const request = RecommendationRequest.fromQuery(req.query);
     request.validate();
 

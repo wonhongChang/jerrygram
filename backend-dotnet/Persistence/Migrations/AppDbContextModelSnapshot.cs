@@ -55,7 +55,7 @@ namespace Persistence.Migrations
                         {
                             Id = new Guid("33333333-3333-3333-3333-333333333333"),
                             Content = "First comment on the first post!",
-                            CreatedAt = new DateTime(2025, 7, 24, 18, 34, 50, 960, DateTimeKind.Utc).AddTicks(3602),
+                            CreatedAt = new DateTime(2025, 7, 28, 14, 16, 23, 189, DateTimeKind.Utc).AddTicks(2349),
                             PostId = new Guid("22222222-2222-2222-2222-222222222222"),
                             UserId = new Guid("11111111-1111-1111-1111-111111111111")
                         });
@@ -138,7 +138,7 @@ namespace Persistence.Migrations
                         {
                             Id = new Guid("22222222-2222-2222-2222-222222222222"),
                             Caption = "Welcome to Jerrygram!",
-                            CreatedAt = new DateTime(2025, 7, 24, 18, 34, 50, 960, DateTimeKind.Utc).AddTicks(3550),
+                            CreatedAt = new DateTime(2025, 7, 28, 14, 16, 23, 189, DateTimeKind.Utc).AddTicks(2327),
                             ImageUrl = "https://placehold.co/600x400/EEE/31343C?font=poppins&text=Jerrygram",
                             UserId = new Guid("11111111-1111-1111-1111-111111111111"),
                             Visibility = 0
@@ -245,7 +245,7 @@ namespace Persistence.Migrations
                         new
                         {
                             Id = new Guid("11111111-1111-1111-1111-111111111111"),
-                            CreatedAt = new DateTime(2025, 7, 24, 18, 34, 50, 960, DateTimeKind.Utc).AddTicks(3374),
+                            CreatedAt = new DateTime(2025, 7, 28, 14, 16, 23, 189, DateTimeKind.Utc).AddTicks(2135),
                             Email = "admin@jerrygram.com",
                             PasswordHash = "hashed-password",
                             Username = "admin"

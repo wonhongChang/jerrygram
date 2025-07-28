@@ -1,6 +1,6 @@
 import { redisEmbeddingCache } from './redisEmbeddingCache.js';
 import { embeddingCache as memoryCache } from './embeddingCache.js';
-import { logger } from '../utils/logger.js';
+import { logger } from '../middleware/logger.js';
 import { APP_CONFIG } from '../config/app.js';
 
 class HybridEmbeddingCache {

@@ -35,7 +35,7 @@ namespace WebApi.Controllers
                 var command = new RegisterUserCommand(dto);
                 var (token, user) = await _registerHandler.HandleAsync(command);
 
-                // Elasticsearch에 사용자 인덱싱
+                // Index user in Elasticsearch
                 await _elasticService.IndexUserAsync(new Application.Common.UserIndex
                 {
                     Id = user.Id,

@@ -11,7 +11,7 @@ import { validateUserId } from '../validation/validators.js';
  */
 export async function getLikedCaptionsByUserId(userId) {
   validateUserId(userId);
-
+logger.info(`DATABASE_URL: ${process.env.DATABASE_URL}`);
   const client = await pool.connect();
   try {
     logger.info(`Fetching liked captions for user: ${userId}`);

@@ -1,5 +1,5 @@
 import { redisClient } from '../config/redis.js';
-import { logger } from '../utils/logger.js';
+import { logger } from '../middleware/logger.js';
 import { APP_CONFIG } from '../config/app.js';
 import crypto from 'crypto';
 

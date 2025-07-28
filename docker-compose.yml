@@ -33,7 +33,7 @@ services:
       - DATABASE_URL=postgresql://postgres:test@postgres:5432/jerrygram
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ENABLE_CACHE=true
-      - CORS_ORIGINS=http://localhost:3000,https://localhost:5001
+      - CORS_ORIGINS=http://localhost:3000,https://localhost:44342
     depends_on:
       - postgres
       - elasticsearch
