@@ -1,7 +1,6 @@
 # Jerrygram 📸
 
-**Jerrygram** is a full-stack Instagram clone built as a portfolio project.
-It features modern UI/UX design, cloud integration, native mobile apps, and an AI chatbot powered by Azure OpenAI.
+**Jerrygram** is a full-stack Instagram clone built as a portfolio project, demonstrating a modern tech stack and enterprise-grade architecture. It was originally built with an ASP.NET Core backend and has recently been **migrated to a Java Spring Boot** backend as the primary API. The app features a modern UI/UX design, cloud integration, native mobile apps (planned), and AI-driven features powered by OpenAI (chatbot, personalized recommendations).
 
 ## 🧰 Tech Stack
 
@@ -11,10 +10,10 @@ It features modern UI/UX design, cloud integration, native mobile apps, and an A
 
 ### Backend
 
-* **ASP.NET Core (C#)** — Clean Architecture with CQRS pattern, enterprise-ready
-* **Redis** — Distributed caching with hybrid fallback strategy
-* **Node.js** — AI-powered recommendation service with OpenAI integration  
-* **Spring Boot (Java)** — secondary implementation (planned), hosted on AWS
+* **ASP.NET Core (C#)** — Initial backend implementation using Clean Architecture and CQRS, demonstrating .NET enterprise patterns.
+* **Spring Boot (Java)** — Java-based backend built with a similar architecture to showcase language-agnostic design principles.
+* **Node.js (Express)** — AI-powered recommendation microservice (OpenAI GPT integration).
+* **Redis** — Distributed caching with a hybrid in-memory fallback strategy.
 
 ### Mobile
 
@@ -40,7 +39,7 @@ It features modern UI/UX design, cloud integration, native mobile apps, and an A
 
 ### 🔐 **Authentication & Security**
 * JWT-based user authentication with refresh tokens
-* Input validation with FluentValidation
+* Input validation for all API requests (server-side enforcement)
 * Security headers and CORS protection
 * Global exception handling
 
@@ -70,25 +69,38 @@ It features modern UI/UX design, cloud integration, native mobile apps, and an A
 
 ```
 jerrygram/
-├── backend-dotnet/              # 🏢 ASP.NET Core API (Clean Architecture)
+├── backend-dotnet/            # 🏢 ASP.NET Core API (original implementation)
 │   ├── Domain/                      # Entities, enums, domain logic
 │   ├── Application/                 # CQRS commands, queries, handlers, DTOs
-│   ├── Infrastructure/              # Services (Redis, Elasticsearch, JWT)
+│   ├── Infrastructure/              # External services (Redis, Elasticsearch, JWT)
 │   ├── Persistence/                 # EF Core, repositories, migrations
 │   └── WebApi/                      # Controllers, middleware, configurations
-├── jerrygram-recommend/         # 🤖 AI Recommendation Service (Node.js)
-│   ├── config/                      # Centralized configuration
-│   ├── middleware/                  # Security, logging, monitoring
-│   ├── controllers/                 # Request handlers
-│   ├── services/                    # OpenAI embeddings & recommendations
-│   ├── models/                      # Data models
-│   ├── cache/                       # Embedding caching system
-│   └── validation/                  # Input validation
-├── docker-compose.yml           # 🐳 Multi-service orchestration
-├── frontend-react/              # React web frontend (planned)
-├── mobile-android/              # Android app (planned)
-└── mobile-ios/                  # iOS app (planned)
+├── backend-java/              # ☕ Spring Boot API (Clean Architecture)
+│   ├── application/           # DTOs, service interfaces, business logic
+│   ├── domain/                # Entities, repository interfaces
+│   ├── infrastructure/        # JPA repositories, Redis & Elasticsearch implementations
+│   └── ...                    # Controllers, configurations, etc.
+├── jerrygram-recommend/       # 🤖 AI Recommendation Service (Node.js)
+│   ├── config/                     # Centralized configuration
+│   ├── middleware/                 # Security, logging, monitoring
+│   ├── controllers/                # Request handlers (Express endpoints)
+│   ├── services/                   # OpenAI embeddings & recommendation logic
+│   ├── models/                     # Data models
+│   ├── cache/                      # Embedding caching system
+│   └── validation/                 # Input validation
+├── docker-compose.yml         # 🐳 Multi-service orchestration
+├── frontend-react/            # React web frontend (planned)
+├── mobile-android/            # Android app (planned)
+└── mobile-ios/                # iOS app (planned)
 ```
+
+### 🧱 Backend Architecture
+Both backend implementations (Spring Boot and the original .NET Core) follow a **Clean Architecture** pattern with layered separation of concerns:
+- **Domain Layer:** Core business entities and repository interfaces (encapsulating enterprise logic).
+- **Application Layer:** Data Transfer Objects (DTOs), service interfaces, and business logic (implementing use cases; e.g. command and query handlers in .NET).
+- **Infrastructure Layer:** Implementations for data access and external services (PostgreSQL via JPA/EF Core, Redis cache providers, Azure Blob Storage, Elasticsearch, etc.), configured via dependency injection.
+- **Presentation Layer:** API endpoints (controllers) exposing application services via HTTP (Spring REST controllers or ASP.NET Web API controllers with Swagger). Controllers are kept thin, delegating to the application layer.
+- **Separation of Concerns:** Domain models are decoupled from DTOs (with mappings between them). Dependencies point inward (inversion of control), resulting in a highly testable and maintainable codebase.
 
 ## 🚀 Getting Started
 
@@ -117,17 +129,17 @@ This will start:
 - **Elasticsearch** on port `9200` (search engine)
 - **AI Recommendation Service** on port `3001`
 
-4. **Run .NET API locally:**
+4. **Run the Spring Boot API locally:**
 ```bash
-cd backend-dotnet/WebApi
-dotnet run
+cd backend-java
+./mvnw spring-boot:run
 ```
 
 ### Service Endpoints
 
-- **Main API**: `https://localhost:5001`
-- **API Documentation**: `https://localhost:5001/swagger`
-- **Health Check**: `https://localhost:5001/api/health`
+- **Main API**: `http://localhost:8080`
+- **API Documentation**: `http://localhost:8080/swagger-ui/`
+- **Health Check**: `http://localhost:8080/api/health`
 - **Recommendations**: `http://localhost:3001/recommend`
 - **Recommendation Health**: `http://localhost:3001/health`
 
@@ -159,27 +171,31 @@ With Redis caching enabled:
 
 ## 📋 Project Management
 
-Project planning is managed internally using **Jira** (private).
+Project planning is managed using **Jira** (private).
 
-Technical documentation is maintained in **Confluence**:
-
-🔗 [📘 Jerrygram Backend Documentation (Confluence)](https://jerryhub.atlassian.net/wiki/spaces/~5af0094aae7a832d555b8eae/folder/425989)  
+Technical documentation and architecture guides are maintained in **Confluence** (internal).
 
 ## 🐳 Docker & DevOps
 
 ### Current Docker Setup ✅
-- **PostgreSQL 17**: Database with persistent volumes
-- **Redis 7.2**: Distributed caching with hybrid fallback strategy
-- **Elasticsearch 8.18**: Search and indexing service  
-- **AI Recommendation Service**: Node.js microservice with OpenAI integration
-- **Multi-service Orchestration**: Docker Compose for easy development
+- **Spring Boot API (Java 21)**: Primary backend service (REST API container)
+- **PostgreSQL 17**: Database with persistent volume storage
+- **Redis 7.2**: In-memory cache with disk persistence (hybrid caching strategy)
+- **Elasticsearch 8.18**: Search and indexing engine
+- **AI Recommendation Service**: Node.js microservice (Express, OpenAI integration)
+- **Multi-service Orchestration**: Docker Compose for easy dev environment setup
 
 ### Production Deployment (Planned)
-- **ASP.NET Core API**: Azure Container Instances
-- **Frontend**: Static web hosting (Azure/Vercel)
+- **Spring Boot API**: Deployable via Azure Container Instances or AWS EKS (containerized backend)
+- **Frontend**: Static web hosting (Azure App Service, Vercel, etc.)
 - **Database**: Azure Database for PostgreSQL
 - **Container Registry**: Azure Container Registry
-- **Monitoring**: Application Insights integration
+- **Monitoring**: Azure Application Insights integration
+
+### CI/CD Automation (GitHub Actions)
+- **Continuous Integration**: GitHub Actions workflow builds & tests on every push (backend and frontend).
+- **Docker Build & Push**: Automated Docker image build for services, pushed to registry (Docker Hub or Azure ACR).
+- **Continuous Deployment**: Optionally deploys updated containers to cloud (e.g. Azure Web App or Kubernetes cluster) on main branch merges.
 
 ### Development Features
 - **Hot Reload**: File watching for development
