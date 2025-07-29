@@ -1,6 +1,7 @@
 # Jerrygram 📸
 
-**Jerrygram** is a full-stack Instagram clone built as a portfolio project, demonstrating a modern tech stack and enterprise-grade architecture. It was originally built with an ASP.NET Core backend and has recently been **migrated to a Java Spring Boot** backend as the primary API. The app features a modern UI/UX design, cloud integration, native mobile apps (planned), and AI-driven features powered by OpenAI (chatbot, personalized recommendations).
+**Jerrygram** is a full-stack Instagram clone built as a portfolio project to demonstrate modern architecture patterns across multiple backend stacks. It includes both an ASP.NET Core (C#) implementation and a Spring Boot (Java) version, each following Clean Architecture principles. The app features a modern UI/UX design, cloud integration, planned native mobile apps, and AI-driven features powered by OpenAI (chatbot and personalized recommendations).
+
 
 ## 🧰 Tech Stack
 
