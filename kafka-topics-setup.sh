@@ -41,15 +41,6 @@ docker exec jg-kafka kafka-topics \
   --replication-factor 1 \
   --config cleanup.policy=compact
 
-docker exec jg-kafka kafka-topics \
-  --create \
-  --topic dotnet-application-logs \
-  --bootstrap-server localhost:9092 \
-  --partitions 2 \
-  --replication-factor 1 \
-  --config cleanup.policy=delete \
-  --config retention.ms=259200000
-
 echo "Kafka topics created successfully!"
 
 # List all topics to verify

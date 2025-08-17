@@ -3,6 +3,7 @@ using Application.Commands.Auth;
 using Application.Commands.Comments;
 using Application.Commands.Posts;
 using Application.Commands.Users;
+using Application.Common;
 using Application.DTOs;
 using Application.Interfaces;
 using Application.Queries;
@@ -11,6 +12,7 @@ using Application.Queries.Comments;
 using Application.Queries.Notifications;
 using Application.Queries.Posts;
 using Application.Queries.Users;
+using Confluent.Kafka;
 using Domain.Entities;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -23,7 +25,6 @@ using Persistence.Data;
 using Persistence.Repositories;
 using StackExchange.Redis;
 using System.Text;
-using Application.Common;
 using WebApi.Configurations;
 using WebApi.Middleware;
 
@@ -56,10 +57,10 @@ namespace WebApi.Extensions
                 configuration.ConnectTimeout = 1000;  // 1 second
                 configuration.SyncTimeout = 1000;     // 1 second
                 configuration.AsyncTimeout = 1000;    // 1 second
-                configuration.CommandMap = CommandMap.Create(new HashSet<string>
-                {
+                configuration.CommandMap = CommandMap.Create(
+                [
                     "FLUSHALL", "FLUSHDB", "SHUTDOWN", "DEBUG"
-                }, available: false);
+                ], available: false);
                 return ConnectionMultiplexer.Connect(configuration);
             });
 
@@ -148,6 +149,51 @@ namespace WebApi.Extensions
                 client.Timeout = TimeSpan.FromSeconds(3);
             });
 
+            services.Configure<KafkaSettings>(config.GetSection(KafkaSettings.SectionName));
+
+            var kafkaSettings = config.GetSection(KafkaSettings.SectionName).Get<KafkaSettings>();
+            if (kafkaSettings?.EnableEventPublishing == true)
+            {
+                // Register Kafka Producer
+                services.AddSingleton<IProducer<string, string>>(sp =>
+                {
+                    var logger = sp.GetRequiredService<ILogger<IProducer<string, string>>>();
+
+                    var producerConfig = new ProducerConfig
+                    {
+                        BootstrapServers = kafkaSettings.BootstrapServers,
+                        ClientId = kafkaSettings.ClientId,
+                        EnableIdempotence = kafkaSettings.EnableIdempotence,
+                        Acks = Acks.All,
+                        MessageTimeoutMs = kafkaSettings.MessageTimeoutMs,
+                        RequestTimeoutMs = kafkaSettings.RequestTimeoutMs,
+                        SecurityProtocol = Enum.Parse<SecurityProtocol>(kafkaSettings.SecurityProtocol),
+                        // Resilience settings
+                        SocketTimeoutMs = 60000,
+                        ReconnectBackoffMs = 100,
+                        ReconnectBackoffMaxMs = 10000
+                    };
+
+                    var producer = new ProducerBuilder<string, string>(producerConfig)
+                        .SetValueSerializer(Serializers.Utf8)
+                        .SetKeySerializer(Serializers.Utf8)
+                        .SetErrorHandler((_, e) => logger.LogError("Kafka producer error: {Error}", e.Reason))
+                        .SetLogHandler((_, message) => logger.LogDebug("Kafka: {Message}", message.Message))
+                        .Build();
+
+                    logger.LogInformation("Kafka producer initialized with servers: {Servers}", kafkaSettings.BootstrapServers);
+                    return producer;
+                });
+
+                // Register Event Service
+                services.AddScoped<IEventService, EventService>();
+            }
+            else
+            {
+                // Register no-op event service for disabled state
+                services.AddScoped<IEventService, NoOpEventService>();
+            }
+
             // Register Infrastructure Services
             // services.AddScoped<IAuthService, AuthService>();
             services.AddSingleton<IBlobService, BlobService>();
@@ -206,7 +252,7 @@ namespace WebApi.Extensions
         {
             // Security headers (should be first)
             app.UseMiddleware<SecurityHeadersMiddleware>();
-            
+
             // Request logging
             app.UseMiddleware<RequestLoggingMiddleware>();
             
