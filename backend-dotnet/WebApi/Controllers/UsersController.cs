@@ -1,11 +1,14 @@
 using Application.Commands;
 using Application.Commands.Users;
 using Application.DTOs;
+using Application.Events;
+using Application.Interfaces;
 using Application.Queries;
 using Application.Queries.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using WebApi.Extensions;
 
 namespace WebApi.Controllers
 {
@@ -22,6 +25,9 @@ namespace WebApi.Controllers
         private readonly ICommandHandler<UnfollowUserCommand> _unfollowUserHandler;
         private readonly ICommandHandler<UploadAvatarCommand, object> _uploadAvatarHandler;
 
+        private readonly IEventService _eventService;
+        private readonly ILogger<UsersController> _logger;
+
         public UsersController(
             IQueryHandler<GetCurrentUserQuery, object> getCurrentUserHandler,
             IQueryHandler<GetUserProfileQuery, object> getUserProfileHandler,
@@ -29,7 +35,9 @@ namespace WebApi.Controllers
             IQueryHandler<GetFollowingsQuery, object> getFollowingsHandler,
             ICommandHandler<FollowUserCommand> followUserHandler,
             ICommandHandler<UnfollowUserCommand> unfollowUserHandler,
-            ICommandHandler<UploadAvatarCommand, object> uploadAvatarHandler)
+            ICommandHandler<UploadAvatarCommand, object> uploadAvatarHandler,
+            IEventService eventService,
+            ILogger<UsersController> logger)
         {
             _getCurrentUserHandler = getCurrentUserHandler;
             _getUserProfileHandler = getUserProfileHandler;
@@ -38,6 +46,8 @@ namespace WebApi.Controllers
             _followUserHandler = followUserHandler;
             _unfollowUserHandler = unfollowUserHandler;
             _uploadAvatarHandler = uploadAvatarHandler;
+            _eventService = eventService;
+            _logger = logger;
         }
 
         [HttpGet("me")]
@@ -65,13 +75,59 @@ namespace WebApi.Controllers
         [HttpGet("{username}")]
         public async Task<IActionResult> GetProfile(string username)
         {
-            var query = new GetUserProfileQuery { Username = username };
-            var result = await _getUserProfileHandler.HandleAsync(query);
+            try
+            {
+                var query = new GetUserProfileQuery { Username = username };
+                var result = await _getUserProfileHandler.HandleAsync(query);
 
-            if (result == null)
-                return NotFound();
+                if (result == null)
+                    return NotFound();
 
-            return Ok(result);
+                var userEvent = new UserEvent
+                {
+                    EventType = "profile_view",
+                    TargetUserId = ExtractUserIdFromResult(result),
+                    Metadata = new Dictionary<string, object>
+                {
+                    { "targetUsername", username },
+                    { "viewerIsAuthenticated", User.Identity?.IsAuthenticated ?? false }
+                }
+                };
+
+                HttpContext.EnrichEvent(userEvent);
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _eventService.PublishUserEventAsync(userEvent);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to publish profile view event for user: {Username}", username);
+                    }
+                });
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting user profile: {Username}", username);
+                return StatusCode(500, "An error occurred while retrieving the user profile");
+            }
+        }
+
+        private static string ExtractUserIdFromResult(object result)
+        {
+            if (result != null)
+            {
+                var idProperty = result.GetType().GetProperty("Id");
+                if (idProperty != null)
+                {
+                    var id = idProperty.GetValue(result);
+                    return id?.ToString() ?? "unknown";
+                }
+            }
+            return "unknown";
         }
 
         /// <summary>
@@ -94,6 +150,26 @@ namespace WebApi.Controllers
                     TargetUserId = id 
                 };
                 await _followUserHandler.HandleAsync(command);
+
+                var followEvent = new UserEvent
+                {
+                    EventType = "follow",
+                    TargetUserId = id.ToString()
+                };
+
+                HttpContext.EnrichEvent(followEvent);
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _eventService.PublishUserEventAsync(followEvent);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to publish follow event for user: {UserId}", id);
+                    }
+                });
+
                 return Ok();
             }
             catch (ArgumentException ex)
@@ -130,6 +206,26 @@ namespace WebApi.Controllers
                     TargetUserId = id 
                 };
                 await _unfollowUserHandler.HandleAsync(command);
+
+                var unfollowEvent = new UserEvent
+                {
+                    EventType = "unfollow",
+                    TargetUserId = id.ToString()
+                };
+
+                HttpContext.EnrichEvent(unfollowEvent);
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _eventService.PublishUserEventAsync(unfollowEvent);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to publish unfollow event for user: {UserId}", id);
+                    }
+                });
+
                 return NoContent();
             }
             catch (ArgumentException ex)
