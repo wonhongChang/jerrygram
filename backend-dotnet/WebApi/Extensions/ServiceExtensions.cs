@@ -200,6 +200,7 @@ namespace WebApi.Extensions
             services.AddScoped<IElasticService, ElasticService>();
             services.AddScoped<ISearchService, SearchService>();
             services.AddScoped<IJwtService, JwtService>();
+            services.AddScoped<IPopularSearchService, PopularSearchService>();
 
             // Cache Services
             services.AddMemoryCache();
