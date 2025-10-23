@@ -64,6 +64,7 @@
 * **Clean Architecture** with CQRS pattern for maintainability
 * **Hybrid Caching Strategy** — Redis primary with memory fallback
 * **Performance Optimization** — 10-30x faster response times with caching
+* **Kafka-Based Event Streaming** — integrated into the .NET backend to support asynchronous event publishing (fire-and-forget), with events pipelined into the ELK stack for analytics
 * Comprehensive health monitoring and structured error handling
 
 ## 📁 Project Structure
