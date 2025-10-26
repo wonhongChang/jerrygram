@@ -127,7 +127,7 @@ namespace WebApi.Controllers
             {
                 return BadRequest(new { error = ex.Message });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during user login");
                 return StatusCode(500, new { error = "An unexpected error occurred." });

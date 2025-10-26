@@ -167,7 +167,7 @@ namespace WebApi.Extensions
                         Acks = Acks.All,
                         MessageTimeoutMs = kafkaSettings.MessageTimeoutMs,
                         RequestTimeoutMs = kafkaSettings.RequestTimeoutMs,
-                        SecurityProtocol = Enum.Parse<SecurityProtocol>(kafkaSettings.SecurityProtocol),
+                        SecurityProtocol = SecurityProtocol.Plaintext,
                         // Resilience settings
                         SocketTimeoutMs = 60000,
                         ReconnectBackoffMs = 100,
@@ -200,7 +200,6 @@ namespace WebApi.Extensions
             services.AddScoped<IElasticService, ElasticService>();
             services.AddScoped<ISearchService, SearchService>();
             services.AddScoped<IJwtService, JwtService>();
-            services.AddScoped<IPopularSearchService, PopularSearchService>();
 
             // Cache Services
             services.AddMemoryCache();

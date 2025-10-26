@@ -12,7 +12,8 @@ namespace WebApi.Extensions
 
         public static string GetSessionId(this HttpContext context)
         {
-            return context.Session?.Id ?? context.TraceIdentifier;
+            // Use TraceIdentifier as session ID (Session requires explicit configuration)
+            return context.TraceIdentifier;
         }
 
         public static string GetIpAddress(this HttpContext context)
