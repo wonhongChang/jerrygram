@@ -12,6 +12,10 @@ Jerrygram は、React、ASP.NET Core、PostgreSQL、Redis、Azure Blob Storage �
 
 このリポジトリには Java/Spring バックエンドも代替実装として含まれていますが、現在の Web UI はデフォルトで .NET API に接続します。
 
+## アーキテクチャ概要
+
+![Jerrygram アーキテクチャ](docs/assets/jerrygram-architecture.png)
+
 ## 現在の機能
 
 - JWT ベースの登録、ログイン、ログアウト、現在ユーザーの読み込み

@@ -12,6 +12,10 @@ The actively verified local development path is:
 
 The repository also contains a Java/Spring backend as an alternate implementation, but the current web UI is wired to the .NET API by default.
 
+## Architecture Overview
+
+![Jerrygram architecture](docs/assets/jerrygram-architecture.png)
+
 ## Current Features
 
 - JWT authentication with register, login, logout, and current-user loading
