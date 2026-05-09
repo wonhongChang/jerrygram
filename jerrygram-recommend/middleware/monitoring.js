@@ -1,4 +1,5 @@
 import { logger } from './logger.js';
+import os from 'node:os';
 
 // Simple performance monitoring
 export const performanceMonitor = (req, res, next) => {
@@ -50,7 +51,7 @@ export const getHealthMetrics = () => {
       heapTotal: `${(memUsage.heapTotal / 1024 / 1024).toFixed(2)}MB`,
       external: `${(memUsage.external / 1024 / 1024).toFixed(2)}MB`
     },
-    loadAverage: process.platform !== 'win32' ? process.loadavg() : 'N/A (Windows)',
+    loadAverage: process.platform !== 'win32' ? os.loadavg() : 'N/A (Windows)',
     nodeVersion: process.version,
     timestamp: new Date().toISOString()
   };

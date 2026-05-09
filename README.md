@@ -1,210 +1,241 @@
-# Jerrygram 📸
+# Jerrygram
 
-**Jerrygram** is a full-stack Instagram clone built as a portfolio project to demonstrate enterprise-grade architecture across both Java (Spring Boot) and C# (.NET) backends. Designed with Clean Architecture, it includes Redis-based hybrid caching, OpenAI-powered AI features, and Azure cloud integration.
+Language: English | [한국어](README.ko.md) | [日本語](README.ja.md)
 
+Jerrygram is a full-stack Instagram-style social app used to demonstrate a production-minded local stack: React, ASP.NET Core, PostgreSQL, Redis, Azure Blob Storage integration, Elasticsearch, Kafka, Logstash, Kibana, and a Node.js recommendation service.
 
-## 🧰 Tech Stack
+The actively verified local development path is:
 
-### Frontend
+- React web UI on `http://localhost:13000`
+- ASP.NET Core Web API on `http://localhost:5018`
+- Dockerized infrastructure for PostgreSQL, Redis, Elasticsearch, Kafka, Kafka UI, Logstash, Kibana, Kafka Connect, and the recommendation service
 
-* React + TypeScript + Tailwind CSS (Web)
+The repository also contains a Java/Spring backend as an alternate implementation, but the current web UI is wired to the .NET API by default.
 
-### Backend
+## Current Features
 
-* **ASP.NET Core (C#)** — Initial backend implementation using Clean Architecture and CQRS, demonstrating .NET enterprise patterns.
-* **Spring Boot (Java)** — Java-based backend built with a similar architecture to showcase language-agnostic design principles.
-* **Node.js (Express)** — AI-powered recommendation microservice (OpenAI GPT integration).
-* **Redis** — Distributed caching with a hybrid in-memory fallback strategy.
+- JWT authentication with register, login, logout, and current-user loading
+- Photo post creation with multipart upload
+- Home feed, public posts, post detail, explore, profile, and search pages
+- Likes, comments, follows, notifications, and profile editing
+- Saved/bookmarked posts with a profile `Saved` tab
+- Redis-backed caching with in-memory fallback
+- Elasticsearch-backed search and discovery
+- Kafka event publishing from the .NET API
+- Kafka to Logstash to Elasticsearch event pipeline for analytics
+- Kibana data view support for `jerrygram-events-*`
+- AI recommendation service on a separate Node.js service
 
-### Mobile
+## Local Ports
 
-* Android (Kotlin) — planned
-* iOS (Swift) — planned
+Jerrygram uses non-default host ports to avoid collisions with other Docker projects.
 
-### Database
+| Service | URL / Host Port |
+| --- | --- |
+| React web UI | `http://localhost:13000` |
+| ASP.NET Core API | `http://localhost:5018` |
+| Recommendation service | `http://localhost:13001` |
+| PostgreSQL | `localhost:15433` |
+| Redis | `localhost:16380` |
+| Elasticsearch | `http://localhost:19200` |
+| Elasticsearch transport | `localhost:19300` |
+| Kafka | `localhost:19092` |
+| Kafka JMX | `localhost:19997` |
+| Kafka UI | `http://localhost:18081` |
+| Kibana | `http://localhost:15601` |
+| Logstash Beats | `localhost:15044` |
+| Logstash API | `http://localhost:19600` |
+| Kafka Connect | `http://localhost:18083` |
 
-* PostgreSQL (managed via pgAdmin4)
+These defaults are configurable with `JG_*` environment variables in the compose files.
 
-### Cloud & Services
+## Project Structure
 
-* Azure: Web API hosting, Blob Storage for image upload, Azure OpenAI for chatbot
-* AWS: Bedrock, S3, EKS/Kubernetes
-
-### AI & Machine Learning
-
-* **OpenAI Integration** — GPT-powered post recommendations using embeddings
-* **Azure OpenAI** — GPT-powered chatbot for user support (planned)
-* **Elasticsearch** — Advanced search and content indexing
-
-## 🧩 Features
-
-### 🔐 **Authentication & Security**
-* JWT-based user authentication with refresh tokens
-* Input validation for all API requests (server-side enforcement)
-* Security headers and CORS protection
-* Global exception handling
-
-### 📱 **Social Media Core**
-* Photo posting with Azure Blob Storage
-* Like, comment, and follow system
-* Real-time notifications
-* Hashtag and mention support
-
-### 🤖 **AI-Powered Features**
-* **Smart Post Recommendations** using OpenAI embeddings
-* Content-based similarity matching
-* Personalized user feeds
-
-### 🔍 **Search & Discovery**
-* Elasticsearch-powered full-text search
-* Advanced content indexing
-* Explore page with trending content
-
-### 📊 **Enterprise Features**
-* **Clean Architecture** with CQRS pattern for maintainability
-* **Hybrid Caching Strategy** — Redis primary with memory fallback
-* **Performance Optimization** — 10-30x faster response times with caching
-* **Kafka-Based Event Streaming** — integrated into the .NET backend to support asynchronous event publishing (fire-and-forget), with events pipelined into the ELK stack for analytics
-* Comprehensive health monitoring and structured error handling
-
-## 📁 Project Structure
-
-```
+```text
 jerrygram/
-├── backend-dotnet/            # 🏢 ASP.NET Core API (original implementation)
-│   ├── Domain/                      # Entities, enums, domain logic
-│   ├── Application/                 # CQRS commands, queries, handlers, DTOs
-│   ├── Infrastructure/              # External services (Redis, Elasticsearch, JWT)
-│   ├── Persistence/                 # EF Core, repositories, migrations
-│   └── WebApi/                      # Controllers, middleware, configurations
-├── backend-java/              # ☕ Spring Boot API (Clean Architecture)
-│   ├── application/           # DTOs, service interfaces, business logic
-│   ├── domain/                # Entities, repository interfaces
-│   ├── infrastructure/        # JPA repositories, Redis & Elasticsearch implementations
-│   └── ...                    # Controllers, configurations, etc.
-├── jerrygram-recommend/       # 🤖 AI Recommendation Service (Node.js)
-│   ├── config/                     # Centralized configuration
-│   ├── middleware/                 # Security, logging, monitoring
-│   ├── controllers/                # Request handlers (Express endpoints)
-│   ├── services/                   # OpenAI embeddings & recommendation logic
-│   ├── models/                     # Data models
-│   ├── cache/                      # Embedding caching system
-│   └── validation/                 # Input validation
-├── docker-compose.yml         # 🐳 Multi-service orchestration
-├── frontend-react/            # React web frontend (planned)
-├── mobile-android/            # Android app (planned)
-└── mobile-ios/                # iOS app (planned)
+  backend-dotnet/                 ASP.NET Core API
+    Domain/                       Domain entities and enums
+    Application/                  CQRS commands, queries, handlers, DTOs
+    Infrastructure/               Redis, Kafka, Elasticsearch, Blob, JWT
+    Persistence/                  EF Core DbContext, repositories, migrations
+    WebApi/                       Controllers, middleware, app configuration
+  backend-java/                   Alternate Spring Boot API implementation
+  frontend-react/                 React + TypeScript web app
+  jerrygram-recommend/            Node.js recommendation service
+  infra/                          Elasticsearch, Kafka, Kibana setup scripts
+  logstash/                       Logstash pipeline configuration
+  docker-compose.yml              Core infrastructure and recommendation service
+  docker-compose.kafka-elk-extended.yml
+                                  Elasticsearch, Kafka, Kibana, Logstash stack
 ```
 
-### 🧱 Backend Architecture
-Both backend implementations (Spring Boot and the original .NET Core) follow a **Clean Architecture** pattern with layered separation of concerns:
-- **Domain Layer:** Core business entities and repository interfaces (encapsulating enterprise logic).
-- **Application Layer:** Data Transfer Objects (DTOs), service interfaces, and business logic (implementing use cases; e.g. command and query handlers in .NET).
-- **Infrastructure Layer:** Implementations for data access and external services (PostgreSQL via JPA/EF Core, Redis cache providers, Azure Blob Storage, Elasticsearch, etc.), configured via dependency injection.
-- **Presentation Layer:** API endpoints (controllers) exposing application services via HTTP (Spring REST controllers or ASP.NET Web API controllers with Swagger). Controllers are kept thin, delegating to the application layer.
-- **Separation of Concerns:** Domain models are decoupled from DTOs (with mappings between them). Dependencies point inward (inversion of control), resulting in a highly testable and maintainable codebase.
+## Prerequisites
 
-## 🚀 Getting Started
+- Docker Desktop
+- .NET SDK 8 or newer
+- Node.js and npm
+- PowerShell on Windows
 
-### Quick Start with Docker
+Optional:
 
-1. **Clone the repository:**
-```bash
-git clone https://github.com/wonhonChang/jerrygram.git
-cd jerrygram
+- `dotnet-ef` for manual migration work
+- Azure Storage or Azurite-compatible Blob settings if you want real image storage instead of fallback behavior
+
+## Environment
+
+Create or update `.env` at the repository root. At minimum, the local compose stack expects Redis and recommendation-service values.
+
+```env
+REDIS_PASSWORD=your-local-redis-password
+OPENAI_API_KEY=your-openai-api-key
+JG_RECOMMEND_PORT=13001
+JG_POSTGRES_PORT=15433
+JG_REDIS_PORT=16380
+JG_ELASTICSEARCH_PORT=19200
+JG_KAFKA_PORT=19092
+JG_KAFKA_UI_PORT=18081
+JG_KIBANA_PORT=15601
+JG_KAFKA_CONNECT_PORT=18083
 ```
 
-2. **Set up environment variables:**
-```bash
-# Create .env file for OpenAI API key
-echo "OPENAI_API_KEY=your-openai-api-key" > .env
+The React app should point at the .NET API:
+
+```env
+# frontend-react/.env
+REACT_APP_API_URL=http://localhost:5018/api
+PORT=13000
 ```
 
-3. **Start all services:**
-```bash
-docker-compose up -d
+## Start The Local Stack
+
+Start Docker infrastructure:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.kafka-elk-extended.yml up -d
 ```
 
-This will start:
-- **PostgreSQL** on port `15432`
-- **Redis** on port `6379` (caching layer)
-- **Elasticsearch** on port `9200` (search engine)
-- **AI Recommendation Service** on port `3001`
+Apply .NET database migrations when needed:
 
-4. **Run the Spring Boot API locally:**
-```bash
-cd backend-java
-./mvnw spring-boot:run
+```powershell
+dotnet ef database update `
+  --project backend-dotnet/Persistence/Persistence.csproj `
+  --startup-project backend-dotnet/WebApi/WebApi.csproj
 ```
 
-### Service Endpoints
+Run the .NET API:
 
-- **Main API**: `http://localhost:8080`
-- **API Documentation**: `http://localhost:8080/swagger-ui/`
-- **Health Check**: `http://localhost:8080/api/health`
-- **Recommendations**: `http://localhost:3001/recommend`
-- **Recommendation Health**: `http://localhost:3001/health`
+```powershell
+$env:ASPNETCORE_ENVIRONMENT = "Development"
+dotnet run --project backend-dotnet/WebApi/WebApi.csproj --urls http://localhost:5018
+```
 
-### Performance Characteristics
+Run the React app:
 
-With Redis caching enabled:
-- **Autocomplete Search**: 11-40ms (Redis) vs 370ms (cold start)
-- **User Profiles**: 8-15ms (Redis) vs 150ms (database)
-- **Public Posts**: 12-25ms (Redis) vs 200ms (database)
+```powershell
+cd frontend-react
+npm install
+npm start
+```
 
-## 🤖 AI-Powered Features
+Open the app:
 
-### Smart Recommendation Engine
-- **Content-Based Filtering**: Uses OpenAI text embeddings to analyze post captions
-- **Personalized Feeds**: Recommends posts based on user's like history
-- **Real-time Processing**: Efficient caching and batch processing
-- **Cosine Similarity**: Advanced similarity matching algorithms
+```text
+http://localhost:13000
+```
 
-### Architecture
-- **Microservice Design**: Separate Node.js service for AI operations
-- **Performance Optimized**: Embedding caching and rate limiting
-- **Scalable**: Containerized with Docker for easy deployment
-- **Monitoring**: Built-in health checks and performance metrics
+## Health Checks
 
-### Future AI Features (Planned)
-- **Azure OpenAI Chatbot**: User support and interaction
-- **Image Recognition**: Auto-tagging and content moderation
-- **Trend Analysis**: Hashtag and content trend predictions
+Useful local checks:
 
-## 📋 Project Management
+```powershell
+docker ps
+Invoke-WebRequest http://localhost:13000 -UseBasicParsing
+Invoke-WebRequest http://localhost:5018/api/posts?page=1&pageSize=3 -UseBasicParsing
+Invoke-WebRequest http://localhost:13001/health -UseBasicParsing
+Invoke-RestMethod http://localhost:19200/_cluster/health
+Invoke-WebRequest http://localhost:15601/api/status -UseBasicParsing
+Invoke-WebRequest http://localhost:19600/_node/stats -UseBasicParsing
+```
 
-Project planning is managed using **Jira** (private).
+Kafka topics:
 
-Technical documentation and architecture guides are maintained in **Confluence** (internal).
+```powershell
+docker exec jg-kafka kafka-topics --bootstrap-server kafka:29092 --list
+```
 
-## 🐳 Docker & DevOps
+Expected Jerrygram event topics:
 
-### Current Docker Setup ✅
-- **Spring Boot API (Java 21)**: Primary backend service (REST API container)
-- **PostgreSQL 17**: Database with persistent volume storage
-- **Redis 7.2**: In-memory cache with disk persistence (hybrid caching strategy)
-- **Elasticsearch 8.18**: Search and indexing engine
-- **AI Recommendation Service**: Node.js microservice (Express, OpenAI integration)
-- **Multi-service Orchestration**: Docker Compose for easy dev environment setup
+```text
+post-events
+user-events
+search-events
+popular-searches
+```
 
-### Production Deployment (Planned)
-- **Spring Boot API**: Deployable via Azure Container Instances or AWS EKS (containerized backend)
-- **Frontend**: Static web hosting (Azure App Service, Vercel, etc.)
-- **Database**: Azure Database for PostgreSQL
-- **Container Registry**: Azure Container Registry
-- **Monitoring**: Azure Application Insights integration
+Elasticsearch event indices:
 
-### CI/CD Automation (GitHub Actions)
-- **Continuous Integration**: GitHub Actions workflow builds & tests on every push (backend and frontend).
-- **Docker Build & Push**: Automated Docker image build for services, pushed to registry (Docker Hub or Azure ACR).
-- **Continuous Deployment**: Optionally deploys updated containers to cloud (e.g. Azure Web App or Kubernetes cluster) on main branch merges.
+```powershell
+Invoke-RestMethod "http://localhost:19200/_cat/indices/jerrygram-events-*?format=json&h=index,docs.count,health,status"
+```
 
-### Development Features
-- **Hot Reload**: File watching for development
-- **Health Monitoring**: Built-in health checks for all services
-- **Logging**: Centralized logging with structured output
-- **Environment Management**: Configurable settings per environment
+## Verified UI Flow
 
-## 📄 License
+The current local UI has been checked against the .NET API with this flow:
+
+1. Register a new user from `/register`.
+2. Create a post with an image and caption.
+3. Verify the post appears on the home feed.
+4. Save the post from the feed.
+5. Verify it appears on the profile `Saved` tab.
+6. Open the detail page and confirm the saved state.
+7. Click the comments action and confirm the comment input receives focus.
+8. Search for the created user.
+9. Delete the post from the feed options menu.
+10. Confirm the deleted post returns `404` from the API.
+
+## Kafka And ELK
+
+The .NET API publishes events to Kafka topics such as `post-events`, `user-events`, `search-events`, and `popular-searches`.
+
+Logstash consumes Kafka events and writes them into daily Elasticsearch indices:
+
+```text
+jerrygram-events-post-YYYY.MM.DD
+jerrygram-events-user-YYYY.MM.DD
+jerrygram-events-search-YYYY.MM.DD
+```
+
+Kibana is available at:
+
+```text
+http://localhost:15601
+```
+
+Use the `Jerrygram Events` data view for `jerrygram-events-*`.
+
+## Development Notes
+
+- Elasticsearch can show `yellow` health in this single-node local setup because replicas are unassigned. That is expected for local development.
+- Existing seeded image URLs may return Blob `404` responses if the remote blob no longer exists. The UI uses fallback image rendering for those cases.
+- Redis cache invalidation is broad for feed, public posts, saved posts, detail pages, and explore data after create, update, delete, like, unlike, save, and unsave actions.
+- The home feed includes the current user's own posts as well as followed-user posts.
+- If another project is using common ports like `3000`, `6379`, `8080`, or `9200`, keep Jerrygram on the `JG_*` ports listed above.
+
+## Build Commands
+
+Backend:
+
+```powershell
+dotnet build backend-dotnet/WebApi/WebApi.csproj
+```
+
+Frontend:
+
+```powershell
+cd frontend-react
+npm run build
+```
+
+## License
 
 This project is licensed under the MIT License.

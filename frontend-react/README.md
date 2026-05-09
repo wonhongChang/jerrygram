@@ -60,9 +60,9 @@ React + TypeScript frontend for Jerrygram, an Instagram + Twitter inspired socia
 - Unread indicator
 
 ### Layout & UX
-- Responsive header with navigation
-- Mobile-friendly hamburger menu
-- Instagram-like UI design
+- Desktop sidebar navigation with mobile top and bottom bars
+- Responsive feed, profile, search, and creation views
+- App-style visual system with focused loading and error states
 - Loading states
 - Error handling
 - Smooth transitions
@@ -71,7 +71,7 @@ React + TypeScript frontend for Jerrygram, an Instagram + Twitter inspired socia
 
 ### Prerequisites
 - Node.js 16+ installed
-- Backend API running on `http://localhost:8080`
+- Backend API running on `http://localhost:8080` for the Docker/Java setup
 
 ### Installation
 
@@ -88,6 +88,7 @@ cp .env.example .env
 3. Update `.env` with your API URL if different:
 ```
 REACT_APP_API_URL=http://localhost:8080/api
+PORT=13000
 ```
 
 ### Running the App
@@ -97,7 +98,7 @@ Start the development server:
 npm start
 ```
 
-The app will open at `http://localhost:3000`
+The app will open at `http://localhost:13000` to avoid collisions with other local projects.
 
 ### Available Scripts
 
@@ -178,11 +179,11 @@ All routes are protected except login/register:
 
 ## Styling Guidelines
 
-This project uses Tailwind CSS with Instagram + Twitter inspired design:
-- Primary color: `#0095f6` (Instagram blue)
-- Border color: `#dbdbdb`
-- Hover color: `#f5f5f5`
-- Background: `#fafafa`
+This project uses Tailwind CSS with a restrained app interface:
+- Primary color: `#2563eb`
+- Border color: `#e4e7ec`
+- Hover color: `#f5f7fa`
+- Background: `#f5f7fa`
 
 ## API Integration
 

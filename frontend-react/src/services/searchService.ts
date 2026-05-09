@@ -1,32 +1,33 @@
 import api from './api';
 import { SearchResult, PopularSearch } from '../types';
+import { normalizePopularSearch, normalizeSearchResult } from '../utils/apiData';
 
 export const searchService = {
   async search(query: string): Promise<SearchResult> {
-    const response = await api.get<SearchResult>('/search', {
+    const response = await api.get('/search', {
       params: { query },
     });
-    return response.data;
+    return normalizeSearchResult(response.data);
   },
 
   async autocomplete(query: string): Promise<SearchResult> {
-    const response = await api.get<SearchResult>('/search/autocomplete', {
+    const response = await api.get('/search/autocomplete', {
       params: { query },
     });
-    return response.data;
+    return normalizeSearchResult(response.data);
   },
 
   async getPopularSearches(limit: number = 10, hours: number = 24): Promise<PopularSearch[]> {
-    const response = await api.get<PopularSearch[]>('/search/popular', {
+    const response = await api.get('/search/popular', {
       params: { limit, hours },
     });
-    return response.data;
+    return Array.isArray(response.data) ? response.data.map(normalizePopularSearch) : [];
   },
 
   async getTrendingSearches(limit: number = 5): Promise<PopularSearch[]> {
-    const response = await api.get<PopularSearch[]>('/search/popular/trending', {
+    const response = await api.get('/search/popular/trending', {
       params: { limit },
     });
-    return response.data;
+    return Array.isArray(response.data) ? response.data.map(normalizePopularSearch) : [];
   },
 };

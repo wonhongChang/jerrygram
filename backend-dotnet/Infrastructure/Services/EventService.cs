@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace Infrastructure.Services
 {
-    public class EventService : IEventService, IDisposable
+    public class EventService : IEventService
     {
         private readonly IProducer<string, string> _producer;
         private readonly ILogger<EventService> _logger;
@@ -75,19 +75,6 @@ namespace Infrastructure.Services
             {
                 _logger.LogError(ex, "Unexpected error while publishing {EventType} event", typeof(T).Name);
                 // Don't rethrow to prevent breaking main application flow
-            }
-        }
-
-        public void Dispose()
-        {
-            try
-            {
-                _producer?.Flush(TimeSpan.FromSeconds(10));
-                _producer?.Dispose();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error disposing Kafka producer");
             }
         }
     }

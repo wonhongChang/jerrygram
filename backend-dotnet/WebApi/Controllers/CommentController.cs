@@ -117,6 +117,7 @@ namespace WebApi.Controllers
         /// Delete a comment (only by the comment owner).
         /// </summary>
         [HttpDelete("{commentId}")]
+        [HttpDelete("/api/comments/{commentId}")]
         public async Task<IActionResult> DeleteComment(Guid commentId)
         {
             var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);

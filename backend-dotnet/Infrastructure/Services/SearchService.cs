@@ -54,18 +54,31 @@ namespace Infrastructure.Services
                 return new
                 {
                     query,
+                    users = Array.Empty<object>(),
+                    hashtags = new[] { tag },
                     posts = filtered.Select(p => new
                     {
                         p.Id,
                         p.Caption,
-                        p.User.Username,
-                        p.CreatedAt
+                        p.ImageUrl,
+                        p.CreatedAt,
+                        likes = p.Likes.Count,
+                        liked = userId != null && p.Likes.Any(l => l.UserId == userId),
+                        user = new
+                        {
+                            p.User.Id,
+                            p.User.Username,
+                            p.User.ProfileImageUrl
+                        }
                     })
                 };
             }
             else
             {
                 var posts = await _elastic.SearchPostsAsync(query);
+                var users = await _elastic.SearchUsersAsync(query);
+                var tags = await _elastic.SearchTagsAsync(query.ToLowerInvariant());
+
                 var filtered = posts.Where(p =>
                     p.Visibility == PostVisibility.Public ||
                     (p.Visibility == PostVisibility.FollowersOnly && userId != null && followingIds.Contains(p.UserId))
@@ -74,12 +87,26 @@ namespace Infrastructure.Services
                 return new
                 {
                     query,
+                    hashtags = tags.Select(t => t.Name),
+                    users = users.Select(u => new
+                    {
+                        u.Id,
+                        u.Username,
+                        u.ProfileImageUrl
+                    }),
                     posts = filtered.Select(p => new
                     {
                         p.Id,
                         p.Caption,
-                        p.Username,
-                        p.CreatedAt
+                        p.ImageUrl,
+                        p.CreatedAt,
+                        likes = 0,
+                        liked = false,
+                        user = new
+                        {
+                            Id = p.UserId,
+                            p.Username
+                        }
                     })
                 };
             }
@@ -121,9 +148,17 @@ namespace Infrastructure.Services
                 {
                     return new
                     {
+                        query,
                         mode = "tag",
+                        posts = Array.Empty<object>(),
+                        hashtags = tags.Select(t => t.Name),
                         tags = tags.Select(t => t.Name),
-                        users = users.Select(u => u.Username),
+                        users = users.Select(u => new
+                        {
+                            u.Id,
+                            u.Username,
+                            u.ProfileImageUrl
+                        }),
                         cached_at = DateTime.UtcNow
                     };
                 }
@@ -131,7 +166,10 @@ namespace Infrastructure.Services
                 {
                     return new
                     {
+                        query,
                         mode = "tag",
+                        posts = Array.Empty<object>(),
+                        hashtags = Array.Empty<string>(),
                         tags = Array.Empty<string>(),
                         users = Array.Empty<string>(),
                         fallback = $"Search for \"{query}\"",
@@ -145,9 +183,17 @@ namespace Infrastructure.Services
 
             return new
             {
+                query,
                 mode = "default",
+                posts = Array.Empty<object>(),
+                hashtags = tagResults.Select(t => t.Name),
                 tags = tagResults.Select(t => t.Name),
-                users = userResults.Select(u => u.Username),
+                users = userResults.Select(u => new
+                {
+                    u.Id,
+                    u.Username,
+                    u.ProfileImageUrl
+                }),
                 cached_at = DateTime.UtcNow
             };
         }

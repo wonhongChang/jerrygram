@@ -45,6 +45,7 @@ namespace Domain.Entities
 
         public ICollection<Comment> Comments { get; set; } = [];
         public ICollection<PostLike> Likes { get; set; } = [];
+        public ICollection<PostSave> Saves { get; set; } = [];
         public ICollection<PostTag> PostTags { get; set; } = [];
 
         /// <summary>

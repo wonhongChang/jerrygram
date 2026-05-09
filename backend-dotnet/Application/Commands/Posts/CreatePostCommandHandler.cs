@@ -94,11 +94,18 @@ namespace Application.Commands.Posts
 
                 await _postTagRepository.CreatePostTagAsync(post.Id, tag.Id);
 
-                await _elastic.IndexTagAsync(new TagIndex
+                try
                 {
-                    Id = tag.Id.ToString(),
-                    Name = tag.Name
-                });
+                    await _elastic.IndexTagAsync(new TagIndex
+                    {
+                        Id = tag.Id.ToString(),
+                        Name = tag.Name
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to index tag {TagName}", tag.Name);
+                }
             }
         }
 
@@ -129,6 +136,9 @@ namespace Application.Commands.Posts
         {
             _cacheService.RemoveByPattern("public_posts");
             _cacheService.RemoveByPattern($"user_feed_{post.UserId}");
+            _cacheService.RemoveByPattern("user_feed");
+            _cacheService.RemoveByPattern("explore_posts");
+            _cacheService.RemoveByPattern("saved_posts");
 
             var hashtags = ExtractHashtagsFromCaption(post.Caption);
             foreach (var hashtag in hashtags)
@@ -180,6 +190,7 @@ namespace Application.Commands.Posts
                 CreatedAt = post.CreatedAt,
                 Likes = 0, // New post has no likes
                 Liked = false,
+                Saved = false,
                 User = user != null ? new SimpleUserDto
                 {
                     Id = user.Id,

@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -53,7 +54,7 @@ namespace Application.Commands.Posts
             {
                 try
                 {
-                    await _blobService.DeleteAsync(post.ImageUrl, "posts");
+                    await _blobService.DeleteAsync(post.ImageUrl, BlobContainers.Post);
                     _logger.LogInformation("Image deleted from blob storage for post {PostId}", command.PostId);
                 }
                 catch (Exception ex)
@@ -72,9 +73,12 @@ namespace Application.Commands.Posts
             await _postRepository.SaveChangesAsync();
 
             // Clear caches
-            await _cacheService.RemoveAsync($"post_details_{command.PostId}");
+            _cacheService.RemoveByPattern($"post_details_{command.PostId}");
             _cacheService.RemoveByPattern("public_posts");
             _cacheService.RemoveByPattern($"user_feed_{command.UserId}");
+            _cacheService.RemoveByPattern("user_feed");
+            _cacheService.RemoveByPattern("explore_posts");
+            _cacheService.RemoveByPattern("saved_posts");
 
             _logger.LogInformation("Post {PostId} deleted successfully", command.PostId);
 

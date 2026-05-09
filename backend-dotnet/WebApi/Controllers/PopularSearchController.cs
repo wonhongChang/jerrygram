@@ -10,6 +10,11 @@ namespace WebApi.Controllers
     {
         private readonly IPopularSearchService _popularSearchService;
 
+        public PopularSearchController(IPopularSearchService popularSearchService)
+        {
+            _popularSearchService = popularSearchService;
+        }
+
         [HttpGet]
         public async Task<ActionResult<List<PopularSearchDto>>> GetPopularSearches(
             [FromQuery] int limit = 10,

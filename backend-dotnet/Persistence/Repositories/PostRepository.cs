@@ -55,6 +55,7 @@ namespace Persistence.Repositories
             var baseQuery = _dbSet
                 .Include(p => p.User)
                 .Include(p => p.Likes)
+                .Include(p => p.Saves)
                 .Where(p => p.Visibility == PostVisibility.Public)
                 .OrderByDescending(p => p.CreatedAt);
 
@@ -71,6 +72,7 @@ namespace Persistence.Repositories
                     CreatedAt = p.CreatedAt,
                     Likes = p.Likes.Count,
                     Liked = currentUserId != null && p.Likes.Any(l => l.UserId == currentUserId),
+                    Saved = currentUserId != null && p.Saves.Any(s => s.UserId == currentUserId),
                     User = new SimpleUserDto
                     {
                         Id = p.User.Id,
@@ -94,6 +96,7 @@ namespace Persistence.Repositories
             return await _dbSet
                 .Include(p => p.User)
                 .Include(p => p.Likes)
+                .Include(p => p.Saves)
                 .Where(p => p.Id == postId)
                 .Select(p => new PostListItemDto
                 {
@@ -103,6 +106,7 @@ namespace Persistence.Repositories
                     CreatedAt = p.CreatedAt,
                     Likes = p.Likes.Count,
                     Liked = currentUserId != null && p.Likes.Any(l => l.UserId == currentUserId),
+                    Saved = currentUserId != null && p.Saves.Any(s => s.UserId == currentUserId),
                     User = new SimpleUserDto
                     {
                         Id = p.User.Id,
@@ -124,6 +128,7 @@ namespace Persistence.Repositories
             return await _dbSet
                 .Include(p => p.User)
                 .Include(p => p.Likes)
+                .Include(p => p.Saves)
                 .Where(p => p.Visibility == PostVisibility.Public)
                 .OrderByDescending(p => p.Likes.Count)
                 .Take(50)
@@ -135,6 +140,7 @@ namespace Persistence.Repositories
                     CreatedAt = p.CreatedAt,
                     Likes = p.Likes.Count,
                     Liked = false,
+                    Saved = false,
                     User = new SimpleUserDto
                     {
                         Id = p.User.Id,
@@ -155,6 +161,7 @@ namespace Persistence.Repositories
             return await _dbSet
                 .Include(p => p.User)
                 .Include(p => p.Likes)
+                .Include(p => p.Saves)
                 .Where(p => p.Visibility == PostVisibility.Public && !followees.Contains(p.UserId))
                 .OrderByDescending(p => p.Likes.Count)
                 .Take(50)
@@ -165,7 +172,8 @@ namespace Persistence.Repositories
                     ImageUrl = p.ImageUrl,
                     CreatedAt = p.CreatedAt,
                     Likes = p.Likes.Count,
-                    Liked = false,
+                    Liked = p.Likes.Any(l => l.UserId == userId),
+                    Saved = p.Saves.Any(s => s.UserId == userId),
                     User = new SimpleUserDto
                     {
                         Id = p.User.Id,
@@ -183,7 +191,8 @@ namespace Persistence.Repositories
             var baseQuery = _dbSet
                 .Include(p => p.User)
                 .Include(p => p.Likes)
-                .Where(p => followingIds.Contains(p.UserId))
+                .Include(p => p.Saves)
+                .Where(p => p.UserId == userId || followingIds.Contains(p.UserId))
                 .OrderByDescending(p => p.CreatedAt);
 
             var totalCount = await baseQuery.CountAsync();
@@ -199,6 +208,7 @@ namespace Persistence.Repositories
                     CreatedAt = p.CreatedAt,
                     Likes = p.Likes.Count,
                     Liked = p.Likes.Any(l => l.UserId == userId),
+                    Saved = p.Saves.Any(s => s.UserId == userId),
                     User = new SimpleUserDto
                     {
                         Id = p.User.Id,
@@ -251,6 +261,8 @@ namespace Persistence.Repositories
         public async Task<List<Post>> GetPostsByIdsAsync(List<Guid> postIds)
         {
             return await _dbSet
+                .Include(p => p.User)
+                .Include(p => p.Likes)
                 .Where(p => postIds.Contains(p.Id))
                 .ToListAsync();
         }

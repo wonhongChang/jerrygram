@@ -8,6 +8,7 @@
         public DateTime CreatedAt { get; set; }
         public int Likes { get; set; }
         public bool Liked { get; set; }
+        public bool Saved { get; set; }
         public SimpleUserDto User { get; set; } = null!;
         public double Score { get; set; }
     }

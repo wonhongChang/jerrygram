@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { FiUserPlus } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
+import { getApiErrorMessage } from '../utils/apiData';
 
 const RegisterPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -20,95 +22,117 @@ const RegisterPage: React.FC = () => {
       await register(email, username, password);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      setError(getApiErrorMessage(err, 'Registration failed. Please try again.'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-4xl font-bold text-gray-900">
-            Jerrygram
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Sign up to see photos and videos from your friends
-          </p>
-        </div>
-        <div className="bg-white p-8 border border-gray-300 rounded-lg">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
-                {error}
+    <main className="min-h-screen bg-[var(--jg-bg)] px-4 py-8 text-gray-950 sm:px-6">
+      <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-5xl items-center gap-8 lg:grid-cols-[1fr_420px]">
+        <section className="hidden lg:block">
+          <div className="max-w-md">
+            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-md bg-gray-950 text-lg font-black text-white">
+              J
+            </div>
+            <h1 className="text-4xl font-black">Jerrygram</h1>
+            <p className="mt-3 text-base text-gray-600">Create a profile, post photos, and follow the people you care about.</p>
+          </div>
+        </section>
+
+        <section className="w-full min-w-0 max-w-[360px] sm:mx-auto sm:max-w-md lg:max-w-none">
+          <div className="mb-6 text-center lg:hidden">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md bg-gray-950 text-lg font-black text-white">
+              J
+            </div>
+            <h1 className="text-3xl font-black">Jerrygram</h1>
+          </div>
+
+          <div className="w-full min-w-0 rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-gray-950">Create account</h2>
+              <p className="mt-1 text-sm text-gray-500">Start with a username and password.</p>
+            </div>
+
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              {error && (
+                <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                  {error}
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="email" className="mb-2 block text-sm font-semibold text-gray-800">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className="block w-full rounded-md border border-gray-300 px-3 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-primary focus:ring-2 focus:ring-blue-100"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </div>
-            )}
 
-            <div>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
+              <div>
+                <label htmlFor="username" className="mb-2 block text-sm font-semibold text-gray-800">
+                  Username
+                </label>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  autoComplete="username"
+                  required
+                  className="block w-full rounded-md border border-gray-300 px-3 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-primary focus:ring-2 focus:ring-blue-100"
+                  placeholder="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
 
-            <div>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                autoComplete="username"
-                required
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-                placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </div>
+              <div>
+                <label htmlFor="password" className="mb-2 block text-sm font-semibold text-gray-800">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  className="block w-full rounded-md border border-gray-300 px-3 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-primary focus:ring-2 focus:ring-blue-100"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
 
-            <div>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-
-            <div>
               <button
                 type="submit"
                 disabled={loading}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
+                <FiUserPlus size={17} />
                 {loading ? 'Signing up...' : 'Sign up'}
               </button>
-            </div>
-          </form>
-        </div>
+            </form>
+          </div>
 
-        <div className="bg-white p-4 border border-gray-300 rounded-lg text-center">
-          <p className="text-sm">
-            Have an account?{' '}
-            <Link to="/login" className="font-medium text-primary hover:text-blue-600">
+          <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4 text-center text-sm shadow-sm">
+            <span className="text-gray-600">Have an account?</span>{' '}
+            <Link to="/login" className="font-semibold text-primary hover:text-blue-700">
               Log in
             </Link>
-          </p>
-        </div>
+          </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 };
 

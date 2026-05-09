@@ -1,6 +1,13 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+export const IS_SPRING_API = /:8080\/api\/?$/i.test(API_BASE_URL);
+
+export const getPaginationParams = (page: number, pageSize: number) => ({
+  page: IS_SPRING_API ? Math.max(0, page - 1) : page,
+  pageSize,
+  size: pageSize,
+});
 
 const api = axios.create({
   baseURL: API_BASE_URL,

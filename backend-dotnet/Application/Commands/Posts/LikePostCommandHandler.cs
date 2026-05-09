@@ -46,9 +46,13 @@ namespace Application.Commands.Posts
             await _postLikeRepository.SaveChangesAsync();
 
             // Clear relevant caches
-            await _cacheService.RemoveAsync($"post_details_{command.PostId}");
+            _cacheService.RemoveByPattern($"post_details_{command.PostId}");
             _cacheService.RemoveByPattern($"post_likes_{command.PostId}");
             _cacheService.RemoveByPattern($"user_feed_{command.UserId}");
+            _cacheService.RemoveByPattern("public_posts");
+            _cacheService.RemoveByPattern("user_feed");
+            _cacheService.RemoveByPattern("explore_posts");
+            _cacheService.RemoveByPattern("saved_posts");
 
             _logger.LogInformation("Post {PostId} liked successfully by user {UserId}", 
                 command.PostId, command.UserId);

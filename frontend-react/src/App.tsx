@@ -10,6 +10,8 @@ import CreatePostPage from './pages/CreatePostPage';
 import PostDetailPage from './pages/PostDetailPage';
 import SearchPage from './pages/SearchPage';
 import NotificationsPage from './pages/NotificationsPage';
+import SettingsPage from './pages/SettingsPage';
+import LoadingSpinner from './components/ui/LoadingSpinner';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
@@ -18,12 +20,12 @@ const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <LoadingSpinner />
       </div>
     );
   }
 
-  return user ? children : <Navigate to="/login" />;
+  return user ? children : <Navigate to="/login" replace />;
 };
 
 // Public Route (redirect to home if already logged in)
@@ -33,17 +35,17 @@ const PublicRoute: React.FC<{ children: React.ReactElement }> = ({ children }) =
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <LoadingSpinner />
       </div>
     );
   }
 
-  return user ? <Navigate to="/" /> : children;
+  return user ? <Navigate to="/" replace /> : children;
 };
 
 function App() {
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <Routes>
           {/* Public Routes */}
@@ -106,6 +108,14 @@ function App() {
             }
           />
           <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/p/:postId"
             element={
               <ProtectedRoute>
@@ -123,7 +133,7 @@ function App() {
           />
 
           {/* Catch all - redirect to home */}
-          <Route path="*" element={<Navigate to="/" />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
     </Router>

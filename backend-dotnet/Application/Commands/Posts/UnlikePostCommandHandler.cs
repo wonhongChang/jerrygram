@@ -7,15 +7,18 @@ namespace Application.Commands.Posts
         private readonly IPostRepository _postRepository;
         private readonly IPostLikeRepository _postLikeRepository;
         private readonly INotificationRepository _notificationRepository;
+        private readonly ICacheService _cacheService;
 
         public UnlikePostCommandHandler(
             IPostRepository postRepository,
             IPostLikeRepository postLikeRepository,
-            INotificationRepository notificationRepository)
+            INotificationRepository notificationRepository,
+            ICacheService cacheService)
         {
             _postRepository = postRepository;
             _postLikeRepository = postLikeRepository;
             _notificationRepository = notificationRepository;
+            _cacheService = cacheService;
         }
 
         public async Task<bool> HandleAsync(UnlikePostCommand command)
@@ -38,6 +41,15 @@ namespace Application.Commands.Posts
             }
 
             await _postLikeRepository.SaveChangesAsync();
+
+            _cacheService.RemoveByPattern($"post_details_{command.PostId}");
+            _cacheService.RemoveByPattern($"post_likes_{command.PostId}");
+            _cacheService.RemoveByPattern($"user_feed_{command.UserId}");
+            _cacheService.RemoveByPattern("public_posts");
+            _cacheService.RemoveByPattern("user_feed");
+            _cacheService.RemoveByPattern("explore_posts");
+            _cacheService.RemoveByPattern("saved_posts");
+
             return true;
         }
     }

@@ -170,6 +170,31 @@ namespace Persistence.Migrations
                     b.ToTable("PostLikes");
                 });
 
+            modelBuilder.Entity("Domain.Entities.PostSave", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.HasIndex("UserId", "PostId")
+                        .IsUnique();
+
+                    b.ToTable("PostSaves");
+                });
+
             modelBuilder.Entity("Domain.Entities.PostTag", b =>
                 {
                     b.Property<Guid>("PostId")
@@ -355,6 +380,25 @@ namespace Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Domain.Entities.PostSave", b =>
+                {
+                    b.HasOne("Domain.Entities.Post", "Post")
+                        .WithMany("Saves")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "User")
+                        .WithMany("SavedPosts")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Domain.Entities.PostTag", b =>
                 {
                     b.HasOne("Domain.Entities.Post", "Post")
@@ -400,6 +444,8 @@ namespace Persistence.Migrations
                     b.Navigation("Likes");
 
                     b.Navigation("PostTags");
+
+                    b.Navigation("Saves");
                 });
 
             modelBuilder.Entity("Domain.Entities.Tag", b =>
@@ -420,6 +466,8 @@ namespace Persistence.Migrations
                     b.Navigation("Notifications");
 
                     b.Navigation("Posts");
+
+                    b.Navigation("SavedPosts");
                 });
 #pragma warning restore 612, 618
         }

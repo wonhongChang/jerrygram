@@ -40,6 +40,7 @@ namespace Domain.Entities
         public ICollection<UserFollow> Followers { get; set; } = [];
         public ICollection<UserFollow> Followings { get; set; } = [];
         public ICollection<PostLike> Likes { get; set; } = [];
+        public ICollection<PostSave> SavedPosts { get; set; } = [];
         public ICollection<Notification> Notifications { get; set; } = [];
     }
 }

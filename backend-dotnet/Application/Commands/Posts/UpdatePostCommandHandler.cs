@@ -12,19 +12,22 @@ namespace Application.Commands.Posts
         private readonly ITagRepository _tagRepository;
         private readonly IBlobService _blobService;
         private readonly IElasticService _elastic;
+        private readonly ICacheService _cacheService;
 
         public UpdatePostCommandHandler(
             IPostRepository postRepository,
             IPostTagRepository postTagRepository,
             ITagRepository tagRepository,
             IBlobService blobService,
-            IElasticService elastic)
+            IElasticService elastic,
+            ICacheService cacheService)
         {
             _postRepository = postRepository;
             _postTagRepository = postTagRepository;
             _tagRepository = tagRepository;
             _blobService = blobService;
             _elastic = elastic;
+            _cacheService = cacheService;
         }
 
         public async Task<Post> HandleAsync(UpdatePostCommand command)
@@ -111,6 +114,12 @@ namespace Application.Commands.Posts
                 CreatedAt = post.CreatedAt,
                 Visibility = post.Visibility
             });
+
+            _cacheService.RemoveByPattern($"post_details_{post.Id}");
+            _cacheService.RemoveByPattern("public_posts");
+            _cacheService.RemoveByPattern("user_feed");
+            _cacheService.RemoveByPattern("explore_posts");
+            _cacheService.RemoveByPattern("saved_posts");
 
             return post;
         }

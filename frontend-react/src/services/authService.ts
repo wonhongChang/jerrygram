@@ -3,19 +3,21 @@ import { LoginDto, RegisterDto, AuthResponse } from '../types';
 
 export const authService = {
   async login(credentials: LoginDto): Promise<AuthResponse> {
-    const response = await api.post<AuthResponse>('/Auth/login', credentials);
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
+    const response = await api.post<AuthResponse & { accessToken?: string }>('/auth/login', credentials);
+    const token = response.data.token || response.data.accessToken;
+    if (token) {
+      localStorage.setItem('token', token);
     }
-    return response.data;
+    return { token: token || '' };
   },
 
   async register(data: RegisterDto): Promise<AuthResponse> {
-    const response = await api.post<AuthResponse>('/Auth/register', data);
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
+    const response = await api.post<AuthResponse & { accessToken?: string }>('/auth/register', data);
+    const token = response.data.token || response.data.accessToken;
+    if (token) {
+      localStorage.setItem('token', token);
     }
-    return response.data;
+    return { token: token || '' };
   },
 
   logout() {

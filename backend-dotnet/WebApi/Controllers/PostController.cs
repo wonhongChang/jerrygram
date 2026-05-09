@@ -22,10 +22,13 @@ namespace WebApi.Controllers
         private readonly ICommandHandler<UpdatePostCommand, Post> _updatePostHandler;
         private readonly ICommandHandler<LikePostCommand> _likePostHandler;
         private readonly ICommandHandler<UnlikePostCommand> _unlikePostHandler;
+        private readonly ICommandHandler<SavePostCommand> _savePostHandler;
+        private readonly ICommandHandler<UnsavePostCommand> _unsavePostHandler;
         private readonly ICommandHandler<DeletePostCommand> _deletePostHandler;
         private readonly IQueryHandler<GetPostByIdQuery, PostListItemDto> _getPostByIdHandler;
         private readonly IQueryHandler<GetPublicPostsQuery, PagedResult<PostListItemDto>> _getPublicPostsHandler;
         private readonly IQueryHandler<GetUserFeedQuery, PagedResult<PostListItemDto>> _getUserFeedHandler;
+        private readonly IQueryHandler<GetSavedPostsQuery, PagedResult<PostListItemDto>> _getSavedPostsHandler;
         private readonly ILogger<PostController> _logger;
         private readonly IEventService _eventService;
 
@@ -34,10 +37,13 @@ namespace WebApi.Controllers
             ICommandHandler<UpdatePostCommand, Post> updatePostHandler,
             ICommandHandler<LikePostCommand> likePostHandler,
             ICommandHandler<UnlikePostCommand> unlikePostHandler,
+            ICommandHandler<SavePostCommand> savePostHandler,
+            ICommandHandler<UnsavePostCommand> unsavePostHandler,
             ICommandHandler<DeletePostCommand> deletePostHandler,
             IQueryHandler<GetPostByIdQuery, PostListItemDto> getPostByIdHandler,
             IQueryHandler<GetPublicPostsQuery, PagedResult<PostListItemDto>> getPublicPostsHandler,
             IQueryHandler<GetUserFeedQuery, PagedResult<PostListItemDto>> getUserFeedHandler,
+            IQueryHandler<GetSavedPostsQuery, PagedResult<PostListItemDto>> getSavedPostsHandler,
             ILogger<PostController> logger,
             IEventService eventService)
         {
@@ -45,10 +51,13 @@ namespace WebApi.Controllers
             _updatePostHandler = updatePostHandler;
             _likePostHandler = likePostHandler;
             _unlikePostHandler = unlikePostHandler;
+            _savePostHandler = savePostHandler;
+            _unsavePostHandler = unsavePostHandler;
             _deletePostHandler = deletePostHandler;
             _getPostByIdHandler = getPostByIdHandler;
             _getPublicPostsHandler = getPublicPostsHandler;
             _getUserFeedHandler = getUserFeedHandler;
+            _getSavedPostsHandler = getSavedPostsHandler;
             _logger = logger;
             _eventService = eventService;
         }
@@ -115,6 +124,27 @@ namespace WebApi.Controllers
             };
             
             var result = await _getPublicPostsHandler.HandleAsync(query);
+            return Ok(result);
+        }
+
+        [HttpGet("saved")]
+        public async Task<IActionResult> GetSavedPosts([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            var userId = GetCurrentUserId();
+            if (!userId.HasValue)
+                return Unauthorized();
+
+            if (page < 1 || pageSize < 1)
+                return BadRequest("Invalid pagination parameters.");
+
+            var query = new GetSavedPostsQuery
+            {
+                UserId = userId.Value,
+                Page = page,
+                PageSize = pageSize
+            };
+
+            var result = await _getSavedPostsHandler.HandleAsync(query);
             return Ok(result);
         }
 
@@ -218,6 +248,37 @@ namespace WebApi.Controllers
                 _logger.LogError(ex, "Error unliking post: {PostId}", id);
                 return StatusCode(500, "An error occurred while processing the unlike");
             }
+        }
+
+        [HttpPost("{id}/save")]
+        public async Task<IActionResult> SavePost(Guid id)
+        {
+            var userId = GetCurrentUserId();
+            if (!userId.HasValue)
+                return Unauthorized();
+
+            try
+            {
+                var command = new SavePostCommand { PostId = id, UserId = userId.Value };
+                await _savePostHandler.HandleAsync(command);
+                return Ok();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { error = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}/save")]
+        public async Task<IActionResult> UnsavePost(Guid id)
+        {
+            var userId = GetCurrentUserId();
+            if (!userId.HasValue)
+                return Unauthorized();
+
+            var command = new UnsavePostCommand { PostId = id, UserId = userId.Value };
+            await _unsavePostHandler.HandleAsync(command);
+            return NoContent();
         }
 
         [HttpPut("{id}")]

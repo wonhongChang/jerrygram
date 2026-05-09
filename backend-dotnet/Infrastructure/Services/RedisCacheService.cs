@@ -15,6 +15,7 @@ namespace Infrastructure.Services
         private readonly IDatabase _database;
         private readonly ILogger<RedisCacheService> _logger;
         private readonly RedisCacheSettings _settings;
+        private const string DistributedCacheInstanceName = "Jerrygram";
 
         public RedisCacheService(
             IDistributedCache distributedCache,
@@ -93,8 +94,12 @@ namespace Infrastructure.Services
             try
             {
                 var server = _redis.GetServer(_redis.GetEndPoints().First());
-                var prefixedPattern = GetPrefixedKey(pattern + "*");
-                var keys = server.Keys(pattern: prefixedPattern).ToArray();
+                var normalizedPattern = pattern.EndsWith("*", StringComparison.Ordinal) ? pattern : $"{pattern}*";
+                var prefixedPattern = GetPrefixedKey(normalizedPattern);
+                var keys = server.Keys(pattern: prefixedPattern)
+                    .Concat(server.Keys(pattern: $"{DistributedCacheInstanceName}{prefixedPattern}"))
+                    .Distinct()
+                    .ToArray();
 
                 if (keys.Any())
                 {

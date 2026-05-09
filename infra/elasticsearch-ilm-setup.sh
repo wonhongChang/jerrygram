@@ -1,7 +1,13 @@
-echo "Setting up Elasticsearch ILM policies..."
+#!/bin/bash
+
+set -euo pipefail
+
+ELASTICSEARCH_URL="${ELASTICSEARCH_URL:-http://localhost:${JG_ELASTICSEARCH_PORT:-19200}}"
+
+echo "Setting up Elasticsearch ILM policies at ${ELASTICSEARCH_URL}..."
 
 # 1. Create ILM policy for application logs
-curl -X PUT "localhost:9200/_ilm/policy/jerrygram-logs-policy" \
+curl -X PUT "${ELASTICSEARCH_URL}/_ilm/policy/jerrygram-logs-policy" \
 -H "Content-Type: application/json" \
 -d '{
   "policy": {
@@ -9,11 +15,6 @@ curl -X PUT "localhost:9200/_ilm/policy/jerrygram-logs-policy" \
       "hot": {
         "min_age": "0ms",
         "actions": {
-          "rollover": {
-            "max_size": "1GB",
-            "max_age": "1d",
-            "max_docs": 1000000
-          },
           "set_priority": {
             "priority": 100
           }
@@ -52,7 +53,7 @@ curl -X PUT "localhost:9200/_ilm/policy/jerrygram-logs-policy" \
 }'
 
 # 2. Create ILM policy for event analytics (shorter retention)
-curl -X PUT "localhost:9200/_ilm/policy/jerrygram-events-policy" \
+curl -X PUT "${ELASTICSEARCH_URL}/_ilm/policy/jerrygram-events-policy" \
 -H "Content-Type: application/json" \
 -d '{
   "policy": {
@@ -60,11 +61,6 @@ curl -X PUT "localhost:9200/_ilm/policy/jerrygram-events-policy" \
       "hot": {
         "min_age": "0ms",
         "actions": {
-          "rollover": {
-            "max_size": "500MB",
-            "max_age": "1d",
-            "max_docs": 500000
-          },
           "set_priority": {
             "priority": 100
           }
@@ -95,16 +91,15 @@ curl -X PUT "localhost:9200/_ilm/policy/jerrygram-events-policy" \
 }'
 
 # 3. Create index templates with ILM policies
-curl -X PUT "localhost:9200/_index_template/jerrygram-logs-template" \
+curl -X PUT "${ELASTICSEARCH_URL}/_index_template/jerrygram-logs-template" \
 -H "Content-Type: application/json" \
 -d '{
   "index_patterns": ["jerrygram-dotnet-backend-*"],
   "template": {
     "settings": {
       "number_of_shards": 1,
-      "number_of_replicas": 1,
+      "number_of_replicas": 0,
       "index.lifecycle.name": "jerrygram-logs-policy",
-      "index.lifecycle.rollover_alias": "jerrygram-logs",
       "refresh_interval": "30s"
     },
     "mappings": {
@@ -148,7 +143,7 @@ curl -X PUT "localhost:9200/_index_template/jerrygram-logs-template" \
   }
 }'
 
-curl -X PUT "localhost:9200/_index_template/jerrygram-events-template" \
+curl -X PUT "${ELASTICSEARCH_URL}/_index_template/jerrygram-events-template" \
 -H "Content-Type: application/json" \
 -d '{
   "index_patterns": ["jerrygram-events-*"],
@@ -157,7 +152,6 @@ curl -X PUT "localhost:9200/_index_template/jerrygram-events-template" \
       "number_of_shards": 2,
       "number_of_replicas": 0,
       "index.lifecycle.name": "jerrygram-events-policy",
-      "index.lifecycle.rollover_alias": "jerrygram-events",
       "refresh_interval": "5s"
     },
     "mappings": {
@@ -218,27 +212,6 @@ curl -X PUT "localhost:9200/_index_template/jerrygram-events-template" \
           }
         }
       }
-    }
-  }
-}'
-
-# 4. Create initial indices with write aliases
-curl -X PUT "localhost:9200/jerrygram-logs-000001" \
--H "Content-Type: application/json" \
--d '{
-  "aliases": {
-    "jerrygram-logs": {
-      "is_write_index": true
-    }
-  }
-}'
-
-curl -X PUT "localhost:9200/jerrygram-events-000001" \
--H "Content-Type: application/json" \
--d '{
-  "aliases": {
-    "jerrygram-events": {
-      "is_write_index": true
     }
   }
 }'

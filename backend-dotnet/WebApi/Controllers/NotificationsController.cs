@@ -1,4 +1,5 @@
 using Application.DTOs;
+using Application.Interfaces;
 using Application.Queries;
 using Application.Queries.Notifications;
 using Microsoft.AspNetCore.Authorization;
@@ -13,10 +14,14 @@ namespace WebApi.Controllers
     public class NotificationsController : ControllerBase
     {
         private readonly IQueryHandler<GetNotificationsQuery, PagedResult<NotificationResponseDto>> _getNotificationsHandler;
+        private readonly INotificationRepository _notificationRepository;
 
-        public NotificationsController(IQueryHandler<GetNotificationsQuery, PagedResult<NotificationResponseDto>> getNotificationsHandler)
+        public NotificationsController(
+            IQueryHandler<GetNotificationsQuery, PagedResult<NotificationResponseDto>> getNotificationsHandler,
+            INotificationRepository notificationRepository)
         {
             _getNotificationsHandler = getNotificationsHandler;
+            _notificationRepository = notificationRepository;
         }
 
         [HttpGet]
@@ -39,6 +44,27 @@ namespace WebApi.Controllers
 
             var result = await _getNotificationsHandler.HandleAsync(query);
             return Ok(result);
+        }
+
+        [HttpPut("{id}/read")]
+        public async Task<IActionResult> MarkAsRead(Guid id)
+        {
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userIdStr == null || !Guid.TryParse(userIdStr, out var userId))
+                return Unauthorized();
+
+            var notification = await _notificationRepository.GetByIdAsync(id);
+            if (notification == null || notification.RecipientId != userId)
+                return NotFound();
+
+            if (!notification.IsRead)
+            {
+                notification.IsRead = true;
+                _notificationRepository.Update(notification);
+                await _notificationRepository.SaveChangesAsync();
+            }
+
+            return NoContent();
         }
     }
 }

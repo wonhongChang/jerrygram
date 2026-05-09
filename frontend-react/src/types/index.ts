@@ -23,6 +23,7 @@ export interface Post {
   createdAt: string;
   likes: number;
   liked: boolean;
+  saved: boolean;
   user: SimpleUser;
   score?: number;
 }

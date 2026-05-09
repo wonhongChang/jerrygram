@@ -1,6 +1,7 @@
 using Application.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using System.Text.Json;
 
 namespace Infrastructure.Services
@@ -9,6 +10,7 @@ namespace Infrastructure.Services
     {
         private readonly IMemoryCache _cache;
         private readonly ILogger<CacheService> _logger;
+        private static readonly ConcurrentDictionary<string, byte> CacheKeys = new();
 
         public CacheService(IMemoryCache cache, ILogger<CacheService> logger)
         {
@@ -64,6 +66,7 @@ namespace Infrastructure.Services
                 options.Priority = CacheItemPriority.Normal;
 
                 _cache.Set(key, value, options);
+                CacheKeys.TryAdd(key, 0);
                 _logger.LogDebug("Cache set for key: {Key}", key);
             }
             catch (Exception ex)
@@ -77,6 +80,7 @@ namespace Infrastructure.Services
             try
             {
                 _cache.Remove(key);
+                CacheKeys.TryRemove(key, out _);
                 _logger.LogDebug("Cache removed for key: {Key}", key);
             }
             catch (Exception ex)
@@ -89,31 +93,19 @@ namespace Infrastructure.Services
         {
             try
             {
-                // Note: IMemoryCache doesn't support pattern-based removal natively
-                // This is a simplified implementation
-                var field = typeof(MemoryCache).GetField("_coherentState", 
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                
-                if (field?.GetValue(_cache) is IDictionary<object, object> coherentState)
-                {
-                    var keysToRemove = new List<object>();
-                    
-                    foreach (var key in coherentState.Keys)
-                    {
-                        if (key.ToString()?.Contains(pattern) == true)
-                        {
-                            keysToRemove.Add(key);
-                        }
-                    }
+                var normalizedPattern = pattern.Replace("*", string.Empty);
+                var keysToRemove = CacheKeys.Keys
+                    .Where(key => key.Contains(normalizedPattern, StringComparison.Ordinal))
+                    .ToList();
 
-                    foreach (var key in keysToRemove)
-                    {
-                        _cache.Remove(key);
-                    }
-                    
-                    _logger.LogDebug("Removed {Count} cache entries matching pattern: {Pattern}", 
-                        keysToRemove.Count, pattern);
+                foreach (var key in keysToRemove)
+                {
+                    _cache.Remove(key);
+                    CacheKeys.TryRemove(key, out _);
                 }
+
+                _logger.LogDebug("Removed {Count} cache entries matching pattern: {Pattern}",
+                    keysToRemove.Count, pattern);
             }
             catch (Exception ex)
             {

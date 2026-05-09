@@ -1,9 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
-import { SearchResult, PopularSearch } from '../types';
+import Avatar from '../components/ui/Avatar';
+import EmptyState from '../components/ui/EmptyState';
+import ErrorState from '../components/ui/ErrorState';
+import ImageWithFallback from '../components/ui/ImageWithFallback';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { PopularSearch, SearchResult } from '../types';
 import { searchService } from '../services/searchService';
-import { FiSearch, FiTrendingUp, FiHash, FiUser } from 'react-icons/fi';
+import { getApiErrorMessage } from '../utils/apiData';
+import { FiHash, FiImage, FiSearch, FiTrendingUp, FiUser } from 'react-icons/fi';
 
 const SearchPage: React.FC = () => {
   const [query, setQuery] = useState('');
@@ -11,142 +17,143 @@ const SearchPage: React.FC = () => {
   const [popularSearches, setPopularSearches] = useState<PopularSearch[]>([]);
   const [trendingSearches, setTrendingSearches] = useState<PopularSearch[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [showAutocomplete, setShowAutocomplete] = useState(false);
 
-  useEffect(() => {
-    loadTrendingAndPopular();
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (query.trim()) {
-        handleAutocomplete();
-      } else {
-        setSearchResults(null);
-        setShowAutocomplete(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [query]);
-
-  const loadTrendingAndPopular = async () => {
+  const loadTrendingAndPopular = useCallback(async () => {
     try {
       const [trending, popular] = await Promise.all([
         searchService.getTrendingSearches(10),
-        searchService.getPopularSearches(20)
+        searchService.getPopularSearches(20),
       ]);
       setTrendingSearches(trending);
       setPopularSearches(popular);
     } catch (error) {
       console.error('Failed to load searches:', error);
     }
-  };
+  }, []);
 
-  const handleAutocomplete = async () => {
-    if (!query.trim()) return;
+  const handleAutocomplete = useCallback(async (value: string) => {
+    if (!value.trim()) return;
 
     try {
-      const results = await searchService.autocomplete(query);
+      const results = await searchService.autocomplete(value);
       setSearchResults(results);
       setShowAutocomplete(true);
     } catch (error) {
-      console.error('Failed to search:', error);
+      console.error('Failed to autocomplete:', error);
     }
-  };
+  }, []);
 
-  const handleSearch = async (searchQuery: string) => {
+  const handleSearch = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) return;
 
     setLoading(true);
+    setError('');
     try {
       const results = await searchService.search(searchQuery);
       setSearchResults(results);
       setShowAutocomplete(false);
     } catch (error) {
+      setError(getApiErrorMessage(error, 'Failed to search'));
       console.error('Failed to search:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadTrendingAndPopular();
+  }, [loadTrendingAndPopular]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (query.trim()) {
+        handleAutocomplete(query);
+      } else {
+        setSearchResults(null);
+        setShowAutocomplete(false);
+        setError('');
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [query, handleAutocomplete]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     handleSearch(query);
   };
 
+  const runSearch = (searchTerm: string) => {
+    setQuery(searchTerm);
+    handleSearch(searchTerm);
+  };
+
+  const hasSearchResults =
+    !!searchResults &&
+    (searchResults.posts.length > 0 || searchResults.users.length > 0 || searchResults.hashtags.length > 0);
+
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto">
-        {/* Search Bar */}
-        <div className="bg-white border border-gray-300 rounded-lg p-6 mb-6">
-          <form onSubmit={handleSubmit} className="relative">
-            <div className="relative">
-              <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onFocus={() => query && setShowAutocomplete(true)}
-                placeholder="Search for users, posts, or hashtags..."
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-            </div>
+      <div className="mx-auto max-w-4xl">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-950">Search</h1>
+          <form onSubmit={handleSubmit} className="relative mt-4">
+            <FiSearch className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => query && hasSearchResults && setShowAutocomplete(true)}
+              placeholder="Users, posts, or hashtags"
+              className="h-12 w-full rounded-lg border border-gray-200 bg-white pl-12 pr-4 text-sm shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100"
+            />
 
-            {/* Autocomplete Dropdown */}
-            {showAutocomplete && searchResults && (
-              <div className="absolute z-10 w-full mt-2 bg-white border border-gray-300 rounded-lg shadow-lg max-h-96 overflow-y-auto">
-                {/* Users */}
-                {searchResults.users && searchResults.users.length > 0 && (
-                  <div className="p-2">
-                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Users</div>
+            {showAutocomplete && searchResults && hasSearchResults && (
+              <div className="absolute z-20 mt-2 max-h-96 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+                {searchResults.users.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-500">
+                      <FiUser size={14} />
+                      Users
+                    </div>
                     {searchResults.users.map((user) => (
                       <Link
                         key={user.id}
                         to={`/${user.username}`}
-                        className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg"
+                        className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-gray-50"
                         onClick={() => setShowAutocomplete(false)}
                       >
-                        {user.profileImageUrl ? (
-                          <img
-                            src={user.profileImageUrl}
-                            alt={user.username}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                            <FiUser size={20} />
-                          </div>
-                        )}
-                        <div>
-                          <div className="font-semibold text-sm">{user.username}</div>
-                          <div className="text-xs text-gray-500">
-                            {user.followerCount} followers
-                          </div>
+                        <Avatar src={user.profileImageUrl} username={user.username} size="md" />
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-semibold text-gray-950">{user.username}</div>
+                          <div className="text-xs text-gray-500">{user.followerCount} followers</div>
                         </div>
                       </Link>
                     ))}
                   </div>
                 )}
 
-                {/* Hashtags */}
-                {searchResults.hashtags && searchResults.hashtags.length > 0 && (
-                  <div className="p-2 border-t border-gray-200">
-                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Hashtags</div>
-                    {searchResults.hashtags.map((tag, index) => (
+                {searchResults.hashtags.length > 0 && (
+                  <div className="mt-2 border-t border-gray-100 pt-2">
+                    <div className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-500">
+                      <FiHash size={14} />
+                      Hashtags
+                    </div>
+                    {searchResults.hashtags.map((tag) => (
                       <button
-                        key={index}
+                        key={tag}
                         onClick={() => {
-                          setQuery(`#${tag}`);
-                          handleSearch(`#${tag}`);
+                          runSearch(`#${tag}`);
                           setShowAutocomplete(false);
                         }}
-                        className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg w-full text-left"
+                        className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left hover:bg-gray-50"
                       >
-                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                          <FiHash size={20} className="text-gray-600" />
-                        </div>
-                        <div className="font-semibold text-sm">#{tag}</div>
+                        <span className="flex h-9 w-9 items-center justify-center rounded-md bg-gray-100 text-gray-600">
+                          <FiHash size={18} />
+                        </span>
+                        <span className="text-sm font-semibold text-gray-950">#{tag}</span>
                       </button>
                     ))}
                   </div>
@@ -156,128 +163,131 @@ const SearchPage: React.FC = () => {
           </form>
         </div>
 
-        {/* Search Results */}
+        {error && (
+          <div className="mb-6">
+            <ErrorState message={error} onRetry={() => handleSearch(query)} />
+          </div>
+        )}
+
         {!showAutocomplete && searchResults && (
-          <div>
-            {/* Posts Results */}
-            {searchResults.posts && searchResults.posts.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold mb-4">Posts</h2>
-                <div className="grid grid-cols-3 gap-1 md:gap-4">
+          <div className="space-y-8">
+            {loading && <LoadingSpinner label="Searching" className="py-4" />}
+
+            {searchResults.posts.length > 0 && (
+              <section>
+                <div className="mb-4 flex items-center gap-2">
+                  <FiImage className="text-gray-500" size={18} />
+                  <h2 className="text-lg font-semibold text-gray-950">Posts</h2>
+                </div>
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   {searchResults.posts.map((post) => (
-                    <Link
-                      key={post.id}
-                      to={`/p/${post.id}`}
-                      className="relative aspect-square bg-gray-100 group overflow-hidden"
-                    >
-                      <img
-                        src={post.imageUrl}
-                        alt={post.caption}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200" />
+                    <Link key={post.id} to={`/p/${post.id}`} className="group relative aspect-square overflow-hidden rounded-md bg-gray-100">
+                      <ImageWithFallback src={post.imageUrl} alt={post.caption || 'Post image'} className="h-full w-full object-cover" />
+                      <div className="absolute inset-0 bg-black bg-opacity-0 transition-all duration-200 group-hover:bg-opacity-35" />
                     </Link>
                   ))}
                 </div>
-              </div>
+              </section>
             )}
 
-            {/* Users Results */}
-            {searchResults.users && searchResults.users.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-xl font-semibold mb-4">Users</h2>
-                <div className="bg-white border border-gray-300 rounded-lg divide-y">
+            {searchResults.users.length > 0 && (
+              <section>
+                <div className="mb-4 flex items-center gap-2">
+                  <FiUser className="text-gray-500" size={18} />
+                  <h2 className="text-lg font-semibold text-gray-950">Users</h2>
+                </div>
+                <div className="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white shadow-sm">
                   {searchResults.users.map((user) => (
-                    <Link
-                      key={user.id}
-                      to={`/${user.username}`}
-                      className="flex items-center gap-3 p-4 hover:bg-gray-50"
-                    >
-                      {user.profileImageUrl ? (
-                        <img
-                          src={user.profileImageUrl}
-                          alt={user.username}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded-full bg-gray-300" />
-                      )}
-                      <div>
-                        <div className="font-semibold">{user.username}</div>
-                        <div className="text-sm text-gray-500">
-                          {user.followerCount} followers
-                        </div>
+                    <Link key={user.id} to={`/${user.username}`} className="flex items-center gap-3 p-4 hover:bg-gray-50">
+                      <Avatar src={user.profileImageUrl} username={user.username} size="lg" />
+                      <div className="min-w-0">
+                        <div className="truncate font-semibold text-gray-950">{user.username}</div>
+                        <div className="text-sm text-gray-500">{user.followerCount} followers</div>
                       </div>
                     </Link>
                   ))}
                 </div>
-              </div>
+              </section>
             )}
 
-            {/* No Results */}
-            {(!searchResults.posts || searchResults.posts.length === 0) &&
-              (!searchResults.users || searchResults.users.length === 0) && (
-                <div className="text-center py-12">
-                  <p className="text-gray-500 text-lg">No results found</p>
-                  <p className="text-gray-400 text-sm mt-2">Try searching for something else</p>
+            {searchResults.hashtags.length > 0 && (
+              <section>
+                <div className="mb-4 flex items-center gap-2">
+                  <FiHash className="text-gray-500" size={18} />
+                  <h2 className="text-lg font-semibold text-gray-950">Hashtags</h2>
                 </div>
-              )}
+                <div className="flex flex-wrap gap-2">
+                  {searchResults.hashtags.map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => runSearch(`#${tag}`)}
+                      className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+                    >
+                      #{tag}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {!loading && !hasSearchResults && (
+              <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+                <EmptyState title="No results found" />
+              </div>
+            )}
           </div>
         )}
 
-        {/* Trending & Popular (shown when no search query) */}
         {!query && !searchResults && (
-          <div className="space-y-8">
-            {/* Trending */}
+          <div className="grid gap-4 lg:grid-cols-2">
             {trendingSearches.length > 0 && (
-              <div className="bg-white border border-gray-300 rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-950">
                   <FiTrendingUp className="text-red-500" />
-                  Trending Now
+                  Trending
                 </h2>
-                <div className="space-y-3">
-                  {trendingSearches.map((search, index) => (
+                <div className="space-y-1">
+                  {trendingSearches.map((search) => (
                     <button
-                      key={index}
-                      onClick={() => {
-                        setQuery(search.searchTerm);
-                        handleSearch(search.searchTerm);
-                      }}
-                      className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                      key={`${search.searchTerm}-${search.rank}`}
+                      onClick={() => runSearch(search.searchTerm)}
+                      className="w-full rounded-md px-3 py-2 text-left transition-colors hover:bg-gray-50"
                     >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-semibold">{search.searchTerm}</div>
-                          <div className="text-sm text-gray-500">{search.count} searches</div>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-semibold text-gray-950">{search.searchTerm}</div>
+                          <div className="text-xs text-gray-500">{search.count} searches</div>
                         </div>
-                        <div className="text-xs px-2 py-1 bg-red-100 text-red-600 rounded-full font-semibold">
+                        <div className="rounded-md bg-red-50 px-2 py-1 text-xs font-semibold text-red-600">
                           #{search.rank}
                         </div>
                       </div>
                     </button>
                   ))}
                 </div>
-              </div>
+              </section>
             )}
 
-            {/* Popular */}
             {popularSearches.length > 0 && (
-              <div className="bg-white border border-gray-300 rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4">Popular Searches</h2>
+              <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                <h2 className="mb-3 text-sm font-semibold text-gray-950">Popular</h2>
                 <div className="flex flex-wrap gap-2">
-                  {popularSearches.map((search, index) => (
+                  {popularSearches.map((search) => (
                     <button
-                      key={index}
-                      onClick={() => {
-                        setQuery(search.searchTerm);
-                        handleSearch(search.searchTerm);
-                      }}
-                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-medium transition-colors"
+                      key={`${search.searchTerm}-${search.rank}`}
+                      onClick={() => runSearch(search.searchTerm)}
+                      className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100"
                     >
                       {search.searchTerm}
                     </button>
                   ))}
                 </div>
+              </section>
+            )}
+
+            {trendingSearches.length === 0 && popularSearches.length === 0 && (
+              <div className="rounded-lg border border-gray-200 bg-white shadow-sm lg:col-span-2">
+                <EmptyState title="Search Jerrygram" />
               </div>
             )}
           </div>

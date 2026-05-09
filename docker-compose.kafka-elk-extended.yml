@@ -3,8 +3,8 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.18.0
     container_name: es8
     ports:
-      - "9200:9200"
-      - "9300:9300"
+      - "${JG_ELASTICSEARCH_PORT:-19200}:9200"
+      - "${JG_ELASTICSEARCH_TRANSPORT_PORT:-19300}:9300"
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -40,13 +40,15 @@ services:
     depends_on:
       - zookeeper
     ports:
-      - "9092:9092"
-      - "9997:9997"
+      - "${JG_KAFKA_PORT:-19092}:9092"
+      - "${JG_KAFKA_JMX_PORT:-19997}:9997"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:${JG_KAFKA_PORT:-19092}
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_JMX_PORT: 9997
@@ -57,7 +59,7 @@ services:
     volumes:
       - kafka_data:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "kafka:29092"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -69,7 +71,7 @@ services:
     depends_on:
       - kafka
     ports:
-      - "8081:8080"  # Avoid conflict with Java backend (8080)
+      - "${JG_KAFKA_UI_PORT:-18081}:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: jerrygram-local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
@@ -85,7 +87,7 @@ services:
     depends_on:
       - elasticsearch
     ports:
-      - "5601:5601"
+      - "${JG_KIBANA_PORT:-15601}:5601"
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
       - SERVER_NAME=kibana
@@ -107,8 +109,8 @@ services:
       - elasticsearch
       - kafka
     ports:
-      - "5044:5044"
-      - "9600:9600"
+      - "${JG_LOGSTASH_BEATS_PORT:-15044}:5044"
+      - "${JG_LOGSTASH_API_PORT:-19600}:9600"
     volumes:
       - ./logstash/config:/usr/share/logstash/pipeline
       - ./logstash/patterns:/usr/share/logstash/patterns
@@ -124,7 +126,7 @@ services:
       - kafka
       - elasticsearch
     ports:
-      - "8083:8083"
+      - "${JG_KAFKA_CONNECT_PORT:-18083}:8083"
     environment:
       CONNECT_BOOTSTRAP_SERVERS: kafka:29092
       CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect

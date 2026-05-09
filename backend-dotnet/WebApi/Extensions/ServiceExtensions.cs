@@ -135,7 +135,8 @@ namespace WebApi.Extensions
 
             services.AddSingleton<IElasticClient>(sp =>
             {
-                var settings = new ConnectionSettings(new Uri("http://localhost:9200"))
+                var elasticsearchUrl = config["Elasticsearch:Url"] ?? "http://localhost:9200";
+                var settings = new ConnectionSettings(new Uri(elasticsearchUrl))
                     .DefaultMappingFor<Application.Common.PostIndex>(m => m.IndexName("posts"))
                     .DefaultMappingFor<Application.Common.UserIndex>(m => m.IndexName("users"))
                     .EnableDebugMode();
@@ -145,8 +146,8 @@ namespace WebApi.Extensions
 
             services.AddHttpClient<IRecommendClient, RecommendClient>(client =>
             {
-                client.BaseAddress = new Uri("http://localhost:3001");
-                client.Timeout = TimeSpan.FromSeconds(3);
+                client.BaseAddress = new Uri(config["Recommendation:BaseUrl"] ?? "http://localhost:3001");
+                client.Timeout = TimeSpan.FromSeconds(config.GetValue<int?>("Recommendation:TimeoutSeconds") ?? 3);
             });
 
             services.Configure<KafkaSettings>(config.GetSection(KafkaSettings.SectionName));
@@ -199,6 +200,7 @@ namespace WebApi.Extensions
             services.AddSingleton<IBlobService, BlobService>();
             services.AddScoped<IElasticService, ElasticService>();
             services.AddScoped<ISearchService, SearchService>();
+            services.AddScoped<IPopularSearchService, PopularSearchService>();
             services.AddScoped<IJwtService, JwtService>();
 
             // Cache Services
@@ -211,6 +213,8 @@ namespace WebApi.Extensions
             services.AddScoped<ICommandHandler<RegisterUserCommand, (string token, User user)>, RegisterUserCommandHandler>();
             services.AddScoped<ICommandHandler<CreatePostCommand, PostListItemDto>, CreatePostCommandHandler>();
             services.AddScoped<ICommandHandler<LikePostCommand>, LikePostCommandHandler>();
+            services.AddScoped<ICommandHandler<SavePostCommand>, SavePostCommandHandler>();
+            services.AddScoped<ICommandHandler<UnsavePostCommand>, UnsavePostCommandHandler>();
             services.AddScoped<ICommandHandler<DeletePostCommand>, DeletePostCommandHandler>();
             services.AddScoped<ICommandHandler<UpdatePostCommand, Post>, UpdatePostCommandHandler>();
             services.AddScoped<ICommandHandler<UnlikePostCommand>, UnlikePostCommandHandler>();
@@ -225,6 +229,7 @@ namespace WebApi.Extensions
             services.AddScoped<IQueryHandler<GetPostByIdQuery, PostListItemDto>, GetPostByIdQueryHandler>();
             services.AddScoped<IQueryHandler<GetPublicPostsQuery, PagedResult<PostListItemDto>>, GetPublicPostsQueryHandler>();
             services.AddScoped<IQueryHandler<GetUserFeedQuery, PagedResult<PostListItemDto>>, GetUserFeedQueryHandler>();
+            services.AddScoped<IQueryHandler<GetSavedPostsQuery, PagedResult<PostListItemDto>>, GetSavedPostsQueryHandler>();
             services.AddScoped<IQueryHandler<GetPostLikesQuery, PagedResult<SimpleUserDto>>, GetPostLikesQueryHandler>();
             services.AddScoped<IQueryHandler<GetExplorePostsQuery, List<PostListItemDto>>, GetExplorePostsQueryHandler>();
             services.AddScoped<IQueryHandler<GetCurrentUserQuery, object>, GetCurrentUserQueryHandler>();
@@ -242,6 +247,7 @@ namespace WebApi.Extensions
             services.AddScoped<ITagRepository, TagRepository>();
             services.AddScoped<IPostRepository, PostRepository>();
             services.AddScoped<IPostLikeRepository, PostLikeRepository>();
+            services.AddScoped<IPostSaveRepository, PostSaveRepository>();
             services.AddScoped<IPostTagRepository, PostTagRepository>();
             services.AddScoped<ICommentRepository, CommentRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
