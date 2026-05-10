@@ -24,7 +24,7 @@ namespace Infrastructure.Services
         public async Task<List<PopularSearchDto>> GetPopularSearchesAsync(int limit = 10, TimeSpan? timeWindow = null)
         {
             var window = timeWindow ?? TimeSpan.FromHours(24);
-            var cacheKey = $"popular_searches_{limit}_{window.TotalMinutes}";
+            var cacheKey = $"popular_searches_v2_{limit}_{window.TotalMinutes}";
 
             var cached = await _cacheService.GetAsync<List<PopularSearchDto>>(cacheKey);
             if (cached != null) return cached;
@@ -35,7 +35,11 @@ namespace Infrastructure.Services
                 var startTime = endTime.Subtract(window);
                 var popularSearches = await GetPopularSearchesBetweenAsync(startTime, endTime, limit, "stable");
 
-                await _cacheService.SetAsync(cacheKey, popularSearches, TimeSpan.FromMinutes(5));
+                if (popularSearches.Count > 0)
+                {
+                    await _cacheService.SetAsync(cacheKey, popularSearches, TimeSpan.FromMinutes(5));
+                }
+
                 return popularSearches;
             }
             catch (Exception ex)
@@ -73,12 +77,18 @@ namespace Infrastructure.Services
             var response = await _elasticsearchClient.SearchAsync<object>(s => s
                 .Index("jerrygram-events-*")
                 .Size(0)
-                .Query(q => q.Bool(b => b.Must(
-                    m => m.Term("kafka_topic.keyword", "search-events"),
-                    m => m.DateRange(r => r
+                .Query(q => q.Bool(b => b.Filter(
+                    f => f.DateRange(r => r
                         .Field("@timestamp")
                         .GreaterThanOrEquals(startTime)
-                        .LessThanOrEquals(endTime)))))
+                        .LessThanOrEquals(endTime)),
+                    f => f.Bool(bb => bb
+                        .Should(
+                            sh => sh.Term("kafka_topic", "search-events"),
+                            sh => sh.Term("kafka_topic.keyword", "search-events"),
+                            sh => sh.Term("event_category.keyword", "search"),
+                            sh => sh.Term("event_category", "search"))
+                        .MinimumShouldMatch(1)))))
                 .Aggregations(a => a.Terms("popular_terms", t => t
                     .Field("searchTerm.keyword")
                     .Size(limit))));

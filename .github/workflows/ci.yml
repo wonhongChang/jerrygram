@@ -26,6 +26,12 @@ jobs:
       - name: Build
         run: dotnet build backend-dotnet/WebApi/WebApi.csproj --configuration Release --no-restore
 
+      - name: Domain tests
+        run: dotnet test backend-dotnet/Domain.Tests/Domain.Tests.csproj --configuration Release
+
+      - name: Infrastructure tests
+        run: dotnet test backend-dotnet/Infrastructure.Tests/Infrastructure.Tests.csproj --configuration Release
+
   java-backend:
     name: Java backend
     runs-on: ubuntu-latest

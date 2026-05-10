@@ -131,6 +131,8 @@ npm start
 
 ```powershell
 dotnet build backend-dotnet/WebApi/WebApi.csproj
+dotnet test backend-dotnet/Domain.Tests/Domain.Tests.csproj
+dotnet test backend-dotnet/Infrastructure.Tests/Infrastructure.Tests.csproj
 ```
 
 React frontend:
