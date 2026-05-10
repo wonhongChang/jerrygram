@@ -6,6 +6,17 @@ Language: [English](README.md) | [한국어](README.ko.md) | 日本語
 
 Jerrygram は React、ASP.NET Core、PostgreSQL、Redis、Blob Storage、Elasticsearch、Kafka、Logstash、Kibana、Node.js レコメンドサービスで構成された Instagram 風のソーシャルアプリです。
 
+## 一目でわかる概要
+
+| 領域 | Jerrygram で示していること |
+| --- | --- |
+| Product flow | 登録/ログイン、フィード、投稿アップロード、プロフィール、検索、通知、保存済み投稿、探索レコメンド |
+| Backend | layered architecture の ASP.NET Core Web API、EF Core、Redis cache、Blob Storage、Elasticsearch、Kafka event、JWT auth |
+| Event analytics | 検索/投稿/ユーザー event が Kafka と Logstash/Kafka Connect を経由して `jerrygram-events-*` index に保存される |
+| Recommendation | Node.js service が caption embedding、Redis cache、cosine similarity で候補投稿を並べる |
+| Java coverage | Java 21 + Spring Boot backend を代替実装として保持し、CI で検証 |
+| Quality gates | GitHub Actions build/test、.NET tests、Java smoke test、Node recommendation tests、React unit test、Playwright E2E |
+
 現在検証している基本の実行経路は次のとおりです。
 
 - React Web UI: `http://localhost:13000`
