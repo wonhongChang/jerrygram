@@ -41,7 +41,7 @@ namespace WebApi.Extensions
             services.Configure<RedisCacheSettings>(config.GetSection("RedisCache"));
             services.Configure<CacheSettings>(config.GetSection("Cache"));
 
-            var redisConnectionString = config.GetConnectionString("Redis");
+            var redisConnectionString = config.GetConnectionString("Redis") ?? "localhost:6379";
             var redisPassword = config["RedisCache:Password"];
 
             if (!string.IsNullOrEmpty(redisPassword))
@@ -138,8 +138,12 @@ namespace WebApi.Extensions
                 var elasticsearchUrl = config["Elasticsearch:Url"] ?? "http://localhost:9200";
                 var settings = new ConnectionSettings(new Uri(elasticsearchUrl))
                     .DefaultMappingFor<Application.Common.PostIndex>(m => m.IndexName("posts"))
-                    .DefaultMappingFor<Application.Common.UserIndex>(m => m.IndexName("users"))
-                    .EnableDebugMode();
+                    .DefaultMappingFor<Application.Common.UserIndex>(m => m.IndexName("users"));
+
+                if (config.GetValue<bool>("Elasticsearch:EnableDebugMode"))
+                {
+                    settings.EnableDebugMode();
+                }
 
                 return new ElasticClient(settings);
             });
@@ -194,6 +198,10 @@ namespace WebApi.Extensions
                 // Register no-op event service for disabled state
                 services.AddScoped<IEventService, NoOpEventService>();
             }
+
+            services.AddSingleton<QueuedEventPublisher>();
+            services.AddSingleton<IEventPublisher>(sp => sp.GetRequiredService<QueuedEventPublisher>());
+            services.AddHostedService<KafkaEventDispatchService>();
 
             // Register Infrastructure Services
             // services.AddScoped<IAuthService, AuthService>();
@@ -254,7 +262,7 @@ namespace WebApi.Extensions
             services.AddScoped<IUserFollowRepository, UserFollowRepository>();
         }
 
-        public static async Task ConfigureMiddleware(this WebApplication app)
+        public static Task ConfigureMiddleware(this WebApplication app)
         {
             // Security headers (should be first)
             app.UseMiddleware<SecurityHeadersMiddleware>();
@@ -293,6 +301,8 @@ namespace WebApi.Extensions
                 context.Users.Add(user);
                 context.SaveChanges();
             }
+
+            return Task.CompletedTask;
         }
     }
 }

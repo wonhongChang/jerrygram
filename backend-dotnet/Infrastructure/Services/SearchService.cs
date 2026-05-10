@@ -32,7 +32,7 @@ namespace Infrastructure.Services
 
         public async Task<object> SearchAsync(string query, string? userIdStr)
         {
-            Guid? userId = string.IsNullOrEmpty(userIdStr) ? null : Guid.Parse(userIdStr);
+            Guid? userId = Guid.TryParse(userIdStr, out var parsedUserId) ? parsedUserId : null;
             List<Guid> followingIds = [];
 
             if (userId != null)
@@ -47,9 +47,7 @@ namespace Infrastructure.Services
                 var postIds = await _postTagRepository.GetPostIdsByTagAsync(tag);
                 var posts = await _postRepository.GetPostsByIdsAsync(postIds);
 
-                var filtered = posts.Where(p =>
-                    p.Visibility == PostVisibility.Public ||
-                    (p.Visibility == PostVisibility.FollowersOnly && userId != null && followingIds.Contains(p.UserId)));
+                var filtered = posts.Where(p => CanViewPost(p.Visibility, p.UserId, userId, followingIds));
 
                 return new
                 {
@@ -79,10 +77,7 @@ namespace Infrastructure.Services
                 var users = await _elastic.SearchUsersAsync(query);
                 var tags = await _elastic.SearchTagsAsync(query.ToLowerInvariant());
 
-                var filtered = posts.Where(p =>
-                    p.Visibility == PostVisibility.Public ||
-                    (p.Visibility == PostVisibility.FollowersOnly && userId != null && followingIds.Contains(p.UserId))
-                );
+                var filtered = posts.Where(p => CanViewPost(p.Visibility, p.UserId, userId, followingIds));
 
                 return new
                 {
@@ -196,6 +191,24 @@ namespace Infrastructure.Services
                 }),
                 cached_at = DateTime.UtcNow
             };
+        }
+
+        private static bool CanViewPost(
+            PostVisibility visibility,
+            Guid ownerId,
+            Guid? currentUserId,
+            IReadOnlyCollection<Guid> followingIds)
+        {
+            if (visibility == PostVisibility.Public)
+                return true;
+
+            if (!currentUserId.HasValue)
+                return false;
+
+            if (ownerId == currentUserId.Value)
+                return true;
+
+            return visibility == PostVisibility.FollowersOnly && followingIds.Contains(ownerId);
         }
     }
 }

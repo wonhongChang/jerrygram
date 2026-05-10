@@ -9,7 +9,7 @@ namespace WebApi.Validators
         {
             RuleFor(x => x.Content)
                 .NotEmpty().WithMessage("Comment content is required")
-                .MaximumLength(500).WithMessage("Comment cannot exceed 500 characters")
+                .MaximumLength(1000).WithMessage("Comment cannot exceed 1000 characters")
                 .MinimumLength(1).WithMessage("Comment must have at least 1 character");
         }
     }

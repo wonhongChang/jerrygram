@@ -11,6 +11,8 @@ local.properties
 
 # Log/OS Files
 *.log
+frontend-react/dev-server*.log
+backend-java/application.log
 
 # Android Studio generated files and folders
 captures/
@@ -628,8 +630,19 @@ appsettings.Development.json
 
 # jerrygram-recommend (Node.js microservice)
 jerrygram-recommend/node_modules/
+/frontend-react/playwright-report/
+/frontend-react/test-results/
 /.claude
-/docs
+/docs/*
+!/docs/assets/
+!/docs/assets/jerrygram-architecture.png
+!/docs/assets/backend-architecture.svg
+!/docs/assets/screenshots/
+!/docs/assets/screenshots/*.png
+!/docs/backend-architecture*.md
+!/docs/env-and-secrets*.md
+!/docs/recommendation-and-kafka*.md
+!/docs/elasticsearch-indexes*.md
 /backend-java/src/main/resources/application-dev.yml
 /backend-java/src/main/resources/application.yml
 /backend-java/README-java.md

@@ -46,9 +46,9 @@ namespace WebApi.Middleware
                     break;
 
                 case UnauthorizedAccessException:
-                    response.Message = "Unauthorized access";
-                    response.StatusCode = (int)HttpStatusCode.Unauthorized;
-                    context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                    response.Message = "Forbidden";
+                    response.StatusCode = (int)HttpStatusCode.Forbidden;
+                    context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
                     break;
 
                 case KeyNotFoundException:

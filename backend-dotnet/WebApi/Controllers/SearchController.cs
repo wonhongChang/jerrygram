@@ -15,16 +15,16 @@ namespace WebApi.Controllers
     public class SearchController : ControllerBase
     {
         private readonly ISearchService _searchService;
-        private readonly IEventService _eventService;
+        private readonly IEventPublisher _eventPublisher;
         private readonly ILogger<SearchController> _logger;
 
         public SearchController(
             ISearchService searchService,
-            IEventService eventService,
+            IEventPublisher eventPublisher,
             ILogger<SearchController> logger)
         {
             _searchService = searchService;
-            _eventService = eventService;
+            _eventPublisher = eventPublisher;
             _logger = logger;
         }
 
@@ -57,18 +57,7 @@ namespace WebApi.Controllers
                 };
 
                 HttpContext.EnrichEvent(searchEvent);
-
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _eventService.PublishSearchEventAsync(searchEvent);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to publish search event for term: {SearchTerm}", query);
-                    }
-                });
+                await _eventPublisher.QueueSearchEventAsync(searchEvent);
 
                 return Ok(result);
             }
@@ -104,18 +93,7 @@ namespace WebApi.Controllers
                 };
 
                 HttpContext.EnrichEvent(searchEvent);
-
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _eventService.PublishSearchEventAsync(searchEvent);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to publish autocomplete event for query: {Query}", query);
-                    }
-                });
+                await _eventPublisher.QueueSearchEventAsync(searchEvent);
 
                 return Ok(result);
             }

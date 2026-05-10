@@ -1,0 +1,65 @@
+{
+  "users": [
+    {
+      "username": "jerry",
+      "email": "jerry@example.com",
+      "password": "Jerrygram123!",
+      "interests": ["kafka", "backend", "architecture"]
+    },
+    {
+      "username": "ada",
+      "email": "ada@example.com",
+      "password": "Jerrygram123!",
+      "interests": ["realtime", "search", "photography"]
+    },
+    {
+      "username": "linus",
+      "email": "linus@example.com",
+      "password": "Jerrygram123!",
+      "interests": ["dotnet", "java", "distributed-systems"]
+    }
+  ],
+  "posts": [
+    {
+      "author": "ada",
+      "image": "images/kafka-trend.png",
+      "caption": "Kafka made this trend pop in real time. #kafka #realtime",
+      "visibility": "Public",
+      "tags": ["kafka", "realtime"]
+    },
+    {
+      "author": "jerry",
+      "image": "images/blob-storage.png",
+      "caption": "Local blob storage keeps upload tests honest. #storage #dotnet",
+      "visibility": "Public",
+      "tags": ["storage", "dotnet"]
+    },
+    {
+      "author": "linus",
+      "image": "images/recommendation-loop.png",
+      "caption": "Recommendation events are easiest to trust when they leave an audit trail. #recommendation #events",
+      "visibility": "Public",
+      "tags": ["recommendation", "events"]
+    }
+  ],
+  "relationships": [
+    { "follower": "jerry", "following": "ada" },
+    { "follower": "jerry", "following": "linus" },
+    { "follower": "ada", "following": "jerry" }
+  ],
+  "interactions": [
+    { "user": "jerry", "type": "like", "postCaptionContains": "Kafka made this trend" },
+    { "user": "jerry", "type": "save", "postCaptionContains": "Recommendation events" },
+    { "user": "ada", "type": "like", "postCaptionContains": "Local blob storage" }
+  ],
+  "searches": [
+    "kafka",
+    "kafka",
+    "kafka",
+    "realtime",
+    "realtime",
+    "blob storage",
+    "recommendation",
+    "events"
+  ]
+}

@@ -11,6 +11,7 @@ namespace Application.Commands.Posts
         private readonly IPostLikeRepository _postLikeRepository;
         private readonly IPostTagRepository _postTagRepository;
         private readonly IBlobService _blobService;
+        private readonly IElasticService _elasticService;
         private readonly ICacheService _cacheService;
         private readonly ILogger<DeletePostCommandHandler> _logger;
 
@@ -20,6 +21,7 @@ namespace Application.Commands.Posts
             IPostLikeRepository postLikeRepository,
             IPostTagRepository postTagRepository,
             IBlobService blobService,
+            IElasticService elasticService,
             ICacheService cacheService,
             ILogger<DeletePostCommandHandler> logger)
         {
@@ -28,6 +30,7 @@ namespace Application.Commands.Posts
             _postLikeRepository = postLikeRepository;
             _postTagRepository = postTagRepository;
             _blobService = blobService;
+            _elasticService = elasticService;
             _cacheService = cacheService;
             _logger = logger;
         }
@@ -71,6 +74,15 @@ namespace Application.Commands.Posts
             _postRepository.Remove(post);
 
             await _postRepository.SaveChangesAsync();
+
+            try
+            {
+                await _elasticService.DeletePostAsync(command.PostId.ToString());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to delete post {PostId} from search index", command.PostId);
+            }
 
             // Clear caches
             _cacheService.RemoveByPattern($"post_details_{command.PostId}");

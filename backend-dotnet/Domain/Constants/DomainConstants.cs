@@ -3,7 +3,7 @@ namespace Domain.Constants
     public static class DomainConstants
     {
         public const int MaxCaptionLength = 2200;
-        public const int MaxCommentLength = 500;
+        public const int MaxCommentLength = 1000;
         public const int MaxUsernameLength = 30;
         public const int MinUsernameLength = 3;
         public const int MaxEmailLength = 100;

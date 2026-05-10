@@ -57,17 +57,7 @@ namespace Infrastructure.Services
 
             if (_settings.UseRedis)
             {
-                tasks.Add(Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _redisCache.SetAsync(key, value, expiry);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to set Redis cache for key: {Key}", key);
-                    }
-                }));
+                tasks.Add(SetRedisSafelyAsync(key, value, expiry));
             }
 
             tasks.Add(_memoryCache.SetAsync(key, value, expiry));
@@ -83,17 +73,7 @@ namespace Infrastructure.Services
 
             if (_settings.UseRedis)
             {
-                tasks.Add(Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _redisCache.RemoveAsync(key);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to remove from Redis cache for key: {Key}", key);
-                    }
-                }));
+                tasks.Add(RemoveRedisSafelyAsync(key));
             }
 
             tasks.Add(_memoryCache.RemoveAsync(key));
@@ -118,6 +98,30 @@ namespace Infrastructure.Services
             }
 
             _memoryCache.RemoveByPattern(pattern);
+        }
+
+        private async Task SetRedisSafelyAsync<T>(string key, T value, TimeSpan? expiry) where T : class
+        {
+            try
+            {
+                await _redisCache.SetAsync(key, value, expiry);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to set Redis cache for key: {Key}", key);
+            }
+        }
+
+        private async Task RemoveRedisSafelyAsync(string key)
+        {
+            try
+            {
+                await _redisCache.RemoveAsync(key);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to remove from Redis cache for key: {Key}", key);
+            }
         }
     }
 }

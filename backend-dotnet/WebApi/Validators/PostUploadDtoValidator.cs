@@ -1,9 +1,9 @@
 using FluentValidation;
-using Application.DTOs;
+using WebApi.Requests;
 
 namespace WebApi.Validators
 {
-    public class PostUploadDtoValidator : AbstractValidator<PostUploadDto>
+    public class PostUploadDtoValidator : AbstractValidator<PostUploadRequest>
     {
         private readonly string[] _allowedImageTypes = { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
         private const long MaxImageSize = 10 * 1024 * 1024; // 10MB

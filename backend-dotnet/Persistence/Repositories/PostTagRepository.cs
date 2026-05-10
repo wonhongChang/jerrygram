@@ -20,7 +20,7 @@ namespace Persistence.Repositories
             };
             
             Add(postTag);
-            await SaveChangesAsync();
+            await Task.CompletedTask;
         }
 
         public async Task<List<Guid>> GetPostIdsByTagAsync(string tagName)

@@ -19,20 +19,20 @@ namespace WebApi.Controllers
         private readonly IQueryHandler<LoginQuery, string> _loginHandler;
         private readonly IElasticService _elasticService;
 
-        private readonly IEventService _eventService;
+        private readonly IEventPublisher _eventPublisher;
         private readonly ILogger<AuthController> _logger;
 
         public AuthController(
             ICommandHandler<RegisterUserCommand, (string token, User user)> registerHandler,
             IQueryHandler<LoginQuery, string> loginHandler,
             IElasticService elasticService,
-            IEventService eventService,
+            IEventPublisher eventPublisher,
             ILogger<AuthController> logger)
         {
             _registerHandler = registerHandler;
             _loginHandler = loginHandler;
             _elasticService = elasticService;
-            _eventService = eventService;
+            _eventPublisher = eventPublisher;
             _logger = logger;
         }
 
@@ -59,23 +59,12 @@ namespace WebApi.Controllers
                     Metadata = new Dictionary<string, object>
                 {
                     { "username", user.Username },
-                    { "email", user.Email },
                     { "registrationMethod", "email" }
                 }
                 };
 
                 HttpContext.EnrichEvent(userEvent);
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _eventService.PublishUserEventAsync(userEvent);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to publish registration event for user: {UserId}", user.Id);
-                    }
-                });
+                await _eventPublisher.QueueUserEventAsync(userEvent);
 
                 return Ok(new { token });
             }
@@ -103,23 +92,12 @@ namespace WebApi.Controllers
                     EventType = "login",
                     Metadata = new Dictionary<string, object>
                 {
-                    { "loginMethod", "email" },
-                    { "email", dto.Email }
+                    { "loginMethod", "email" }
                 }
                 };
 
                 HttpContext.EnrichEvent(loginEvent);
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _eventService.PublishUserEventAsync(loginEvent);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to publish login event for email: {Email}", dto.Email);
-                    }
-                });
+                await _eventPublisher.QueueUserEventAsync(loginEvent);
 
                 return Ok(new { token });
             }

@@ -119,9 +119,13 @@ namespace Application.Commands.Posts
                     await _elastic.IndexPostAsync(new PostIndex
                     {
                         Id = post.Id,
+                        UserId = post.UserId,
                         Caption = post.Caption ?? string.Empty,
+                        Tags = post.Hashtags.ToList(),
+                        ImageUrl = post.ImageUrl,
                         CreatedAt = post.CreatedAt,
-                        Username = user.Username
+                        Username = user.Username,
+                        Visibility = post.Visibility
                     });
                 }
             }

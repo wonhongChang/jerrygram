@@ -33,7 +33,11 @@ namespace Domain.ValueObjects
         private static IReadOnlyList<string> ExtractHashtags(string caption)
         {
             var matches = Regex.Matches(caption, RegexPatterns.Hashtag, RegexOptions.IgnoreCase);
-            return matches.Select(m => m.Value.ToLowerInvariant()).Distinct().ToList();
+            return matches
+                .Select(m => m.Value.TrimStart('#').ToLowerInvariant())
+                .Where(tag => !string.IsNullOrWhiteSpace(tag))
+                .Distinct()
+                .ToList();
         }
 
         private static IReadOnlyList<string> ExtractMentions(string caption)

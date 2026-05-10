@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="960" viewBox="0 0 1440 960" role="img" aria-labelledby="title desc">
+  <title id="title">Jerrygram Backend Architecture</title>
+  <desc id="desc">Layered backend architecture diagram for the Jerrygram ASP.NET Core API, data stores, event pipeline, and recommendation service.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .panel { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 14; }
+      .web { fill: #dbeafe; stroke: #2563eb; }
+      .app { fill: #dcfce7; stroke: #16a34a; }
+      .domain { fill: #fef3c7; stroke: #d97706; }
+      .infra { fill: #fce7f3; stroke: #db2777; }
+      .data { fill: #ede9fe; stroke: #7c3aed; }
+      .external { fill: #e0f2fe; stroke: #0284c7; }
+      .box { stroke-width: 2; rx: 10; }
+      .title { font: 700 28px Arial, sans-serif; fill: #0f172a; }
+      .subtitle { font: 500 15px Arial, sans-serif; fill: #475569; }
+      .label { font: 700 16px Arial, sans-serif; fill: #0f172a; }
+      .small { font: 500 13px Arial, sans-serif; fill: #334155; }
+      .tiny { font: 500 12px Arial, sans-serif; fill: #475569; }
+      .arrow { stroke: #334155; stroke-width: 2.4; fill: none; marker-end: url(#arrowhead); }
+      .event { stroke: #db2777; stroke-width: 2.4; fill: none; stroke-dasharray: 8 7; marker-end: url(#eventhead); }
+      .read { stroke: #7c3aed; stroke-width: 2.4; fill: none; marker-end: url(#arrowhead); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M 0 0 L 10 4 L 0 8 z" fill="#334155"/>
+    </marker>
+    <marker id="eventhead" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M 0 0 L 10 4 L 0 8 z" fill="#db2777"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1440" height="960"/>
+  <text class="title" x="60" y="58">Jerrygram Backend Architecture</text>
+  <text class="subtitle" x="60" y="85">ASP.NET Core API with CQRS handlers, PostgreSQL persistence, Redis cache, Blob media storage, Elasticsearch search, Kafka analytics, and Node.js recommendations.</text>
+
+  <rect class="panel" x="40" y="120" width="1360" height="780"/>
+
+  <rect class="box external" x="80" y="170" width="180" height="78"/>
+  <text class="label" x="118" y="202">React Web UI</text>
+  <text class="small" x="110" y="228">localhost:13000</text>
+
+  <rect class="box web" x="330" y="145" width="240" height="130"/>
+  <text class="label" x="382" y="176">WebApi Layer</text>
+  <text class="small" x="355" y="204">Controllers</text>
+  <text class="small" x="355" y="226">Middleware</text>
+  <text class="small" x="355" y="248">Validators / DI</text>
+
+  <rect class="box app" x="650" y="145" width="280" height="130"/>
+  <text class="label" x="705" y="176">Application Layer</text>
+  <text class="small" x="680" y="204">Commands / Queries</text>
+  <text class="small" x="680" y="226">DTOs / Interfaces</text>
+  <text class="small" x="680" y="248">Visibility and cache rules</text>
+
+  <rect class="box domain" x="1010" y="145" width="240" height="130"/>
+  <text class="label" x="1069" y="176">Domain Layer</text>
+  <text class="small" x="1040" y="204">User / Post / Comment</text>
+  <text class="small" x="1040" y="226">Follow / Like / Save</text>
+  <text class="small" x="1040" y="248">Value Objects / Enums</text>
+
+  <path class="arrow" d="M260 209 L330 209"/>
+  <path class="arrow" d="M570 209 L650 209"/>
+  <path class="arrow" d="M930 209 L1010 209"/>
+
+  <rect class="box data" x="650" y="345" width="280" height="155"/>
+  <text class="label" x="707" y="378">Persistence Layer</text>
+  <text class="small" x="680" y="407">EF Core DbContext</text>
+  <text class="small" x="680" y="429">Repositories</text>
+  <text class="small" x="680" y="451">Migrations</text>
+  <text class="small" x="680" y="473">PostgreSQL schema</text>
+
+  <rect class="box data" x="1020" y="370" width="210" height="95"/>
+  <text class="label" x="1074" y="404">PostgreSQL</text>
+  <text class="small" x="1060" y="430">Users, Posts,</text>
+  <text class="small" x="1062" y="452">Social graph</text>
+
+  <path class="read" d="M790 275 L790 345"/>
+  <path class="read" d="M930 422 L1020 422"/>
+
+  <rect class="box infra" x="285" y="345" width="270" height="155"/>
+  <text class="label" x="350" y="378">Infrastructure</text>
+  <text class="small" x="318" y="407">BlobService</text>
+  <text class="small" x="318" y="429">ElasticService / SearchService</text>
+  <text class="small" x="318" y="451">HybridCacheService</text>
+  <text class="small" x="318" y="473">QueuedEventPublisher</text>
+
+  <path class="arrow" d="M650 423 L555 423"/>
+
+  <rect class="box external" x="100" y="585" width="210" height="95"/>
+  <text class="label" x="155" y="619">Blob Storage</text>
+  <text class="small" x="132" y="645">post / profile images</text>
+
+  <rect class="box external" x="365" y="585" width="210" height="95"/>
+  <text class="label" x="426" y="619">Redis</text>
+  <text class="small" x="407" y="645">cache + fallback</text>
+
+  <rect class="box external" x="630" y="585" width="225" height="95"/>
+  <text class="label" x="684" y="619">Elasticsearch</text>
+  <text class="small" x="674" y="645">posts, users, tags, events</text>
+
+  <rect class="box external" x="910" y="585" width="210" height="95"/>
+  <text class="label" x="970" y="619">Kafka</text>
+  <text class="small" x="948" y="645">post/user/search events</text>
+
+  <rect class="box external" x="1175" y="585" width="170" height="95"/>
+  <text class="label" x="1220" y="619">Kibana</text>
+  <text class="small" x="1203" y="645">analytics views</text>
+
+  <path class="arrow" d="M342 500 L222 585"/>
+  <path class="arrow" d="M420 500 L455 585"/>
+  <path class="arrow" d="M500 500 L678 585"/>
+  <path class="event" d="M555 472 C720 520 800 530 910 620"/>
+  <path class="event" d="M1120 633 L1175 633"/>
+
+  <rect class="box external" x="910" y="740" width="210" height="95"/>
+  <text class="label" x="968" y="774">Logstash</text>
+  <text class="small" x="946" y="800">Kafka consumer</text>
+  <text class="small" x="950" y="822">event normalization</text>
+
+  <rect class="box external" x="630" y="740" width="225" height="95"/>
+  <text class="label" x="686" y="774">Recommend API</text>
+  <text class="small" x="674" y="800">Node.js service</text>
+  <text class="small" x="674" y="822">caption embeddings</text>
+
+  <path class="event" d="M1015 680 L1015 740"/>
+  <path class="event" d="M910 785 L855 785"/>
+  <path class="read" d="M742 740 L742 680"/>
+  <path class="arrow" d="M650 250 C560 300 540 345 555 393"/>
+
+  <rect class="panel" x="80" y="760" width="430" height="90"/>
+  <text class="label" x="110" y="793">Important backend rules</text>
+  <text class="tiny" x="110" y="818">1. Private posts are owner-only.</text>
+  <text class="tiny" x="110" y="838">2. Followers-only posts require authentication and follow relation.</text>
+  <text class="tiny" x="110" y="858">3. Kafka events are queued and dispatched by a hosted worker.</text>
+
+  <text class="tiny" x="60" y="930">Solid arrows: request/read/write flow. Dashed arrows: async event and analytics pipeline.</text>
+</svg>

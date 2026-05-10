@@ -27,7 +27,7 @@ namespace Persistence.Repositories
             return await _dbSet.FirstOrDefaultAsync(l => l.PostId == postId && l.UserId == userId);
         }
 
-        public async Task<PostLike> CreateLikeAsync(Guid postId, Guid userId)
+        public Task<PostLike> CreateLikeAsync(Guid postId, Guid userId)
         {
             var like = new PostLike
             {
@@ -37,7 +37,7 @@ namespace Persistence.Repositories
             };
             
             Add(like);
-            return like;
+            return Task.FromResult(like);
         }
 
         public async Task<PagedResult<SimpleUserDto>> GetPostLikesAsync(Guid postId, int page, int pageSize)

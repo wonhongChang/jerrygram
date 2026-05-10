@@ -18,7 +18,7 @@ namespace Infrastructure.Services
             _logger = logger;
         }
 
-        public async Task<T?> GetAsync<T>(string key) where T : class
+        public Task<T?> GetAsync<T>(string key) where T : class
         {
             try
             {
@@ -27,23 +27,23 @@ namespace Infrastructure.Services
                     _logger.LogDebug("Cache hit for key: {Key}", key);
                     
                     if (cached is T directValue)
-                        return directValue;
+                        return Task.FromResult<T?>(directValue);
                     
                     if (cached is string jsonValue)
-                        return JsonSerializer.Deserialize<T>(jsonValue);
+                        return Task.FromResult(JsonSerializer.Deserialize<T>(jsonValue));
                 }
 
                 _logger.LogDebug("Cache miss for key: {Key}", key);
-                return null;
+                return Task.FromResult<T?>(null);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving cache for key: {Key}", key);
-                return null;
+                return Task.FromResult<T?>(null);
             }
         }
 
-        public async Task SetAsync<T>(string key, T value, TimeSpan? expiry = null) where T : class
+        public Task SetAsync<T>(string key, T value, TimeSpan? expiry = null) where T : class
         {
             try
             {
@@ -73,9 +73,11 @@ namespace Infrastructure.Services
             {
                 _logger.LogError(ex, "Error setting cache for key: {Key}", key);
             }
+
+            return Task.CompletedTask;
         }
 
-        public async Task RemoveAsync(string key)
+        public Task RemoveAsync(string key)
         {
             try
             {
@@ -87,6 +89,8 @@ namespace Infrastructure.Services
             {
                 _logger.LogError(ex, "Error removing cache for key: {Key}", key);
             }
+
+            return Task.CompletedTask;
         }
 
         public void RemoveByPattern(string pattern)

@@ -192,7 +192,10 @@ namespace Persistence.Repositories
                 .Include(p => p.User)
                 .Include(p => p.Likes)
                 .Include(p => p.Saves)
-                .Where(p => p.UserId == userId || followingIds.Contains(p.UserId))
+                .Where(p =>
+                    p.UserId == userId ||
+                    (followingIds.Contains(p.UserId) &&
+                     (p.Visibility == PostVisibility.Public || p.Visibility == PostVisibility.FollowersOnly)))
                 .OrderByDescending(p => p.CreatedAt);
 
             var totalCount = await baseQuery.CountAsync();

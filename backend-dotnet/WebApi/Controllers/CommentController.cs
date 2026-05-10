@@ -21,20 +21,20 @@ namespace WebApi.Controllers
         private readonly ICommandHandler<DeleteCommentCommand> _deleteCommentHandler;
         private readonly IQueryHandler<GetCommentsQuery, object> _getCommentsHandler;
 
-        private readonly IEventService _eventService;
+        private readonly IEventPublisher _eventPublisher;
         private readonly ILogger<CommentController> _logger;
 
         public CommentController(
             ICommandHandler<CreateCommentCommand, CommentResponseDto> createCommentHandler,
             ICommandHandler<DeleteCommentCommand> deleteCommentHandler,
             IQueryHandler<GetCommentsQuery, object> getCommentsHandler,
-            IEventService eventService,
+            IEventPublisher eventPublisher,
             ILogger<CommentController> logger)
         {
             _createCommentHandler = createCommentHandler;
             _deleteCommentHandler = deleteCommentHandler;
             _getCommentsHandler = getCommentsHandler;
-            _eventService = eventService;
+            _eventPublisher = eventPublisher;
             _logger = logger;
         }
 
@@ -72,17 +72,7 @@ namespace WebApi.Controllers
                 };
 
                 HttpContext.EnrichEvent(commentEvent);
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _eventService.PublishPostEventAsync(commentEvent);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to publish comment event for post: {PostId}", postId);
-                    }
-                });
+                await _eventPublisher.QueuePostEventAsync(commentEvent);
 
                 return CreatedAtAction(nameof(GetComments), new { postId }, result);
             }
@@ -145,17 +135,7 @@ namespace WebApi.Controllers
                 };
 
                 HttpContext.EnrichEvent(deleteEvent);
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _eventService.PublishPostEventAsync(deleteEvent);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to publish comment delete event for comment: {CommentId}", commentId);
-                    }
-                });
+                await _eventPublisher.QueuePostEventAsync(deleteEvent);
 
                 return NoContent();
             }

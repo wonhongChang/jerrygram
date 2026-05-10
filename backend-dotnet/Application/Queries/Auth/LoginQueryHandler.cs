@@ -23,12 +23,12 @@ namespace Application.Queries.Auth
         {
             var dto = query.Dto;
             
-            _logger.LogInformation("Login attempt for email: {Email}", dto.Email);
+            _logger.LogInformation("Login attempt received");
 
             var user = await _userRepository.GetByEmailAsync(dto.Email);
             if (user == null)
             {
-                _logger.LogWarning("Login failed: User with email {Email} not found", dto.Email);
+                _logger.LogWarning("Login failed: user not found");
                 throw new ArgumentException("Invalid email or password.");
             }
 

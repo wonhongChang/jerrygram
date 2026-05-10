@@ -55,8 +55,13 @@ namespace Application.Queries.Posts
                 throw new UnauthorizedAccessException("You don't have permission to view this post");
             }
 
-            if (post.Visibility == PostVisibility.FollowersOnly && query.CurrentUserId.HasValue && post.UserId != query.CurrentUserId)
+            if (post.Visibility == PostVisibility.FollowersOnly && post.UserId != query.CurrentUserId)
             {
+                if (!query.CurrentUserId.HasValue)
+                {
+                    throw new UnauthorizedAccessException("You don't have permission to view this post");
+                }
+
                 var isFollowing = await _postRepository.IsFollowerAsync(query.CurrentUserId.Value, post.UserId);
                 
                 if (!isFollowing)

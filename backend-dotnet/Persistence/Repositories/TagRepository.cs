@@ -25,7 +25,7 @@ namespace Persistence.Repositories
                 .ToDictionaryAsync(t => t.Name);
         }
 
-        public async Task<Tag> CreateTagAsync(string tagName)
+        public Task<Tag> CreateTagAsync(string tagName)
         {
             var tag = new Tag 
             { 
@@ -34,7 +34,7 @@ namespace Persistence.Repositories
             };
             
             Add(tag);
-            return tag;
+            return Task.FromResult(tag);
         }
     }
 }

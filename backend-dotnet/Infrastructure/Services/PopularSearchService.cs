@@ -33,61 +33,7 @@ namespace Infrastructure.Services
             {
                 var endTime = DateTime.UtcNow;
                 var startTime = endTime.Subtract(window);
-
-                var searchRequest = new SearchRequest<object>("jerrygram-events-*")
-                {
-                    Query = new BoolQuery
-                    {
-                        Must =
-                        [
-                            new TermQuery
-                            {
-                                Field = "kafka_topic",
-                                Value = "search-events"
-                            },
-                            new DateRangeQuery
-                            {
-                                Field = "@timestamp",
-                                GreaterThanOrEqualTo = startTime,
-                                LessThanOrEqualTo = endTime
-                            }
-                        ]
-                    },
-                    Aggregations = new AggregationDictionary
-                    {
-                        {
-                            "popular_terms", new TermsAggregation("popular_terms")
-                            {
-                                Field = "searchTerm.keyword",
-                                Size = limit,
-                                Order = [TermsOrder.CountDescending]
-                            }
-                        }
-                    },
-                    Size = 0
-                };
-
-                var response = await _elasticsearchClient.SearchAsync<object>(searchRequest);
-                var popularSearches = new List<PopularSearchDto>();
-
-                if (response.IsValid && response.Aggregations.TryGetValue("popular_terms", out var termsAgg))
-                {
-                    if (termsAgg is TermsAggregate<object> terms)
-                    {
-                        int rank = 1;
-                        foreach (var bucket in terms.Buckets)
-                        {
-                            popularSearches.Add(new PopularSearchDto
-                            {
-                                SearchTerm = bucket.Key.ToString() ?? "",
-                                Count = bucket.DocCount ?? 0,
-                                Rank = rank++,
-                                LastSearched = endTime,
-                                Category = "stable"
-                            });
-                        }
-                    }
-                }
+                var popularSearches = await GetPopularSearchesBetweenAsync(startTime, endTime, limit, "stable");
 
                 await _cacheService.SetAsync(cacheKey, popularSearches, TimeSpan.FromMinutes(5));
                 return popularSearches;
@@ -100,18 +46,65 @@ namespace Infrastructure.Services
         }
         public async Task<List<PopularSearchDto>> GetTrendingSearchesAsync(int limit = 5)
         {
-            // Compare last 6 hours vs previous 6 hours
-            var current = await GetPopularSearchesAsync(limit * 2, TimeSpan.FromHours(6));
-            var previous = await GetPopularSearchesAsync(limit * 2, TimeSpan.FromHours(12));
+            var endTime = DateTime.UtcNow;
+            var currentStart = endTime.Subtract(TimeSpan.FromHours(6));
+            var previousStart = endTime.Subtract(TimeSpan.FromHours(12));
+
+            var current = await GetPopularSearchesBetweenAsync(currentStart, endTime, limit * 2, "rising");
+            var previous = await GetPopularSearchesBetweenAsync(previousStart, currentStart, limit * 2, "previous");
+            var previousByTerm = previous.ToDictionary(p => p.SearchTerm, StringComparer.OrdinalIgnoreCase);
 
             var trending = current.Where(c =>
-                !previous.Any(p => p.SearchTerm == c.SearchTerm) ||
-                c.Count > (previous.FirstOrDefault(p => p.SearchTerm == c.SearchTerm)?.Count ?? 0))
+                !previousByTerm.TryGetValue(c.SearchTerm, out var prior) ||
+                c.Count > prior.Count)
                 .Take(limit)
                 .ToList();
 
             trending.ForEach(t => t.Category = "rising");
             return trending;
+        }
+
+        private async Task<List<PopularSearchDto>> GetPopularSearchesBetweenAsync(
+            DateTime startTime,
+            DateTime endTime,
+            int limit,
+            string category)
+        {
+            var response = await _elasticsearchClient.SearchAsync<object>(s => s
+                .Index("jerrygram-events-*")
+                .Size(0)
+                .Query(q => q.Bool(b => b.Must(
+                    m => m.Term("kafka_topic.keyword", "search-events"),
+                    m => m.DateRange(r => r
+                        .Field("@timestamp")
+                        .GreaterThanOrEquals(startTime)
+                        .LessThanOrEquals(endTime)))))
+                .Aggregations(a => a.Terms("popular_terms", t => t
+                    .Field("searchTerm.keyword")
+                    .Size(limit))));
+
+            if (!response.IsValid)
+            {
+                _logger.LogWarning("Popular search aggregation failed: {Reason}", response.ServerError?.Error?.Reason ?? response.OriginalException?.Message);
+                return [];
+            }
+
+            var terms = response.Aggregations.Terms("popular_terms");
+            if (terms?.Buckets == null)
+                return [];
+
+            var rank = 1;
+            return terms.Buckets
+                .Select(bucket => new PopularSearchDto
+                {
+                    SearchTerm = bucket.Key,
+                    Count = bucket.DocCount ?? 0,
+                    Rank = rank++,
+                    LastSearched = endTime,
+                    Category = category
+                })
+                .Where(dto => !string.IsNullOrWhiteSpace(dto.SearchTerm))
+                .ToList();
         }
     }
 }

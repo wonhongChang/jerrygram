@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using WebApi.Extensions;
+using WebApi.Requests;
 
 namespace WebApi.Controllers
 {
@@ -30,7 +31,7 @@ namespace WebApi.Controllers
         private readonly IQueryHandler<GetUserFeedQuery, PagedResult<PostListItemDto>> _getUserFeedHandler;
         private readonly IQueryHandler<GetSavedPostsQuery, PagedResult<PostListItemDto>> _getSavedPostsHandler;
         private readonly ILogger<PostController> _logger;
-        private readonly IEventService _eventService;
+        private readonly IEventPublisher _eventPublisher;
 
         public PostController(
             ICommandHandler<CreatePostCommand, PostListItemDto> createPostHandler,
@@ -45,7 +46,7 @@ namespace WebApi.Controllers
             IQueryHandler<GetUserFeedQuery, PagedResult<PostListItemDto>> getUserFeedHandler,
             IQueryHandler<GetSavedPostsQuery, PagedResult<PostListItemDto>> getSavedPostsHandler,
             ILogger<PostController> logger,
-            IEventService eventService)
+            IEventPublisher eventPublisher)
         {
             _createPostHandler = createPostHandler;
             _updatePostHandler = updatePostHandler;
@@ -59,11 +60,11 @@ namespace WebApi.Controllers
             _getUserFeedHandler = getUserFeedHandler;
             _getSavedPostsHandler = getSavedPostsHandler;
             _logger = logger;
-            _eventService = eventService;
+            _eventPublisher = eventPublisher;
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreatePost([FromForm] PostUploadDto dto)
+        public async Task<IActionResult> CreatePost([FromForm] PostUploadRequest request)
         {
             var userId = GetCurrentUserId();
             if (!userId.HasValue)
@@ -71,6 +72,13 @@ namespace WebApi.Controllers
 
             try
             {
+                var dto = new PostUploadDto
+                {
+                    Caption = request.Caption,
+                    Image = request.Image.ToUploadFile(),
+                    Visibility = request.Visibility
+                };
+
                 var command = new CreatePostCommand { Dto = dto, UserId = userId.Value };
                 var result = await _createPostHandler.HandleAsync(command);
 
@@ -81,24 +89,14 @@ namespace WebApi.Controllers
                     Content = dto.Caption?.Substring(0, Math.Min(dto.Caption?.Length ?? 0, 100)),
                     Metadata = new Dictionary<string, object>
                     {
-                        { "hasImage", dto.Image != null },
+                        { "hasImage", request.Image != null },
                         { "captionLength", dto.Caption?.Length ?? 0 },
                         { "visibility", dto.Visibility.ToString() }
                     }
                 };
 
                 HttpContext.EnrichEvent(postEvent);
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _eventService.PublishPostEventAsync(postEvent);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to publish post creation event for post: {PostId}", result.Id);
-                    }
-                });
+                await _eventPublisher.QueuePostEventAsync(postEvent);
 
                 return CreatedAtAction(nameof(GetPostById), new { id = result.Id }, result);
             }
@@ -185,17 +183,7 @@ namespace WebApi.Controllers
                 };
 
                 HttpContext.EnrichEvent(likeEvent);
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _eventService.PublishPostEventAsync(likeEvent);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to publish like event for post: {PostId}", id);
-                    }
-                });
+                await _eventPublisher.QueuePostEventAsync(likeEvent);
 
                 return Ok();
             }
@@ -229,17 +217,7 @@ namespace WebApi.Controllers
                 };
 
                 HttpContext.EnrichEvent(unlikeEvent);
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _eventService.PublishPostEventAsync(unlikeEvent);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to publish unlike event for post: {PostId}", id);
-                    }
-                });
+                await _eventPublisher.QueuePostEventAsync(unlikeEvent);
 
                 return Ok();
             }
@@ -282,11 +260,18 @@ namespace WebApi.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdatePost(Guid id, [FromBody] UpdatePostDto dto)
+        public async Task<IActionResult> UpdatePost(Guid id, [FromForm] UpdatePostRequest request)
         {
             var userId = GetCurrentUserId();
             if (!userId.HasValue)
                 return Unauthorized();
+
+            var dto = new UpdatePostDto
+            {
+                Caption = request.Caption,
+                Image = request.Image.ToUploadFile(),
+                Visibility = request.Visibility
+            };
 
             var command = new UpdatePostCommand { PostId = id, Dto = dto, UserId = userId.Value };
             var result = await _updatePostHandler.HandleAsync(command);
@@ -334,17 +319,7 @@ namespace WebApi.Controllers
                 };
 
                 HttpContext.EnrichEvent(deleteEvent);
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _eventService.PublishPostEventAsync(deleteEvent);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to publish delete event for post: {PostId}", id);
-                    }
-                });
+                await _eventPublisher.QueuePostEventAsync(deleteEvent);
 
                 return NoContent();
             }

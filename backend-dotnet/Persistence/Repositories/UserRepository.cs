@@ -33,13 +33,14 @@ namespace Persistence.Repositories
 
         public async Task<object?> GetUserProfileByUsernameAsync(string username)
         {
+            var normalizedUsername = username.ToLowerInvariant();
+
             return await _dbSet
-                .Where(u => u.Username.ToLower() == username.ToLower())
+                .Where(u => u.Username == normalizedUsername)
                 .Select(u => new
                 {
                     u.Id,
                     u.Username,
-                    u.Email,
                     u.ProfileImageUrl,
                     u.CreatedAt,
                     Followers = u.Followers.Count,

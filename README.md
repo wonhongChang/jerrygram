@@ -2,7 +2,7 @@
 
 Language: English | [한국어](README.ko.md) | [日本語](README.ja.md)
 
-Jerrygram is a full-stack Instagram-style social app used to demonstrate a production-minded local stack: React, ASP.NET Core, PostgreSQL, Redis, Azure Blob Storage integration, Elasticsearch, Kafka, Logstash, Kibana, and a Node.js recommendation service.
+Jerrygram is a full-stack Instagram-style social app used to demonstrate a production-minded local stack: React, ASP.NET Core, PostgreSQL, Redis, local/Azure-compatible Blob Storage, Elasticsearch, Kafka, Logstash, Kibana, and a Node.js recommendation service.
 
 The actively verified local development path is:
 
@@ -12,29 +12,47 @@ The actively verified local development path is:
 
 The repository also contains a Java/Spring backend as an alternate implementation, but the current web UI is wired to the .NET API by default.
 
-## Architecture Overview
+## Architecture
 
 ![Jerrygram architecture](docs/assets/jerrygram-architecture.png)
 
-## Current Features
+Backend internals are documented in [docs/backend-architecture.md](docs/backend-architecture.md).
+
+## Screenshots
+
+![Jerrygram register screen](docs/assets/screenshots/jerrygram-register.png)
+
+![Jerrygram feed screen](docs/assets/screenshots/jerrygram-feed.png)
+
+![Jerrygram search trends screen](docs/assets/screenshots/jerrygram-search.png)
+
+## Evidence And Docs
+
+- [Backend architecture](docs/backend-architecture.md)
+- [Recommendation and Kafka evidence](docs/recommendation-and-kafka.md)
+- [Elasticsearch index inventory](docs/elasticsearch-indexes.md)
+- [Environment and secret setup](docs/env-and-secrets.md)
+- [Seed data](infra/seed/README.md)
+
+## Features
 
 - JWT authentication with register, login, logout, and current-user loading
 - Photo post creation with multipart upload
 - Home feed, public posts, post detail, explore, profile, and search pages
-- Likes, comments, follows, notifications, and profile editing
-- Saved/bookmarked posts with a profile `Saved` tab
+- Likes, comments, follows, notifications, profile editing, and saved posts
 - Redis-backed caching with in-memory fallback
 - Elasticsearch-backed search and discovery
 - Kafka event publishing from the .NET API
-- Kafka to Logstash to Elasticsearch event pipeline for analytics
-- Kibana data view support for `jerrygram-events-*`
-- AI recommendation service on a separate Node.js service
+- Kafka to Logstash/Kafka Connect to Elasticsearch event pipeline for analytics
+- Kibana support for `jerrygram-events-*`
+- Node.js recommendation service that ranks candidates with caption embeddings and cosine similarity
+- Playwright E2E tests for register, feed interaction, and Kafka-backed search trends
 
 ## Local Ports
 
 Jerrygram uses non-default host ports to avoid collisions with other Docker projects.
 
-| Service | URL / Host Port |
+| Service | URL / host port |
 | --- | --- |
 | React web UI | `http://localhost:13000` |
 | ASP.NET Core API | `http://localhost:5018` |
@@ -66,7 +84,7 @@ jerrygram/
   backend-java/                   Alternate Spring Boot API implementation
   frontend-react/                 React + TypeScript web app
   jerrygram-recommend/            Node.js recommendation service
-  infra/                          Elasticsearch, Kafka, Kibana setup scripts
+  infra/                          Setup scripts and seed data
   logstash/                       Logstash pipeline configuration
   docker-compose.yml              Core infrastructure and recommendation service
   docker-compose.kafka-elk-extended.yml
@@ -87,28 +105,17 @@ Optional:
 
 ## Environment
 
-Create or update `.env` at the repository root. At minimum, the local compose stack expects Redis and recommendation-service values.
+Copy the example files before running locally:
 
-```env
-REDIS_PASSWORD=your-local-redis-password
-OPENAI_API_KEY=your-openai-api-key
-JG_RECOMMEND_PORT=13001
-JG_POSTGRES_PORT=15433
-JG_REDIS_PORT=16380
-JG_ELASTICSEARCH_PORT=19200
-JG_KAFKA_PORT=19092
-JG_KAFKA_UI_PORT=18081
-JG_KIBANA_PORT=15601
-JG_KAFKA_CONNECT_PORT=18083
+```powershell
+Copy-Item .env.example .env
+Copy-Item backend-dotnet/WebApi/appsettings.example.json backend-dotnet/WebApi/appsettings.json
+Copy-Item frontend-react/.env.example frontend-react/.env
+Copy-Item jerrygram-recommend/.env.example jerrygram-recommend/.env
+Copy-Item backend-java/.env.example backend-java/.env
 ```
 
-The React app should point at the .NET API:
-
-```env
-# frontend-react/.env
-REACT_APP_API_URL=http://localhost:5018/api
-PORT=13000
-```
+See [docs/env-and-secrets.md](docs/env-and-secrets.md) for secret and port details.
 
 ## Start The Local Stack
 
@@ -141,15 +148,9 @@ npm install
 npm start
 ```
 
-Open the app:
-
-```text
-http://localhost:13000
-```
+Open `http://localhost:13000`.
 
 ## Health Checks
-
-Useful local checks:
 
 ```powershell
 docker ps
@@ -182,9 +183,19 @@ Elasticsearch event indices:
 Invoke-RestMethod "http://localhost:19200/_cat/indices/jerrygram-events-*?format=json&h=index,docs.count,health,status"
 ```
 
+## Kafka And ELK Evidence
+
+The .NET API publishes events to Kafka topics such as `post-events`, `user-events`, `search-events`, and `popular-searches`. Event data is indexed into Elasticsearch as daily `jerrygram-events-*` indices and can be inspected in Kibana.
+
+![Kafka UI topics](docs/assets/screenshots/kafka-ui-topics.png)
+
+![Kibana event indices](docs/assets/screenshots/kibana-indices.png)
+
+More detail is available in [docs/recommendation-and-kafka.md](docs/recommendation-and-kafka.md).
+
 ## Verified UI Flow
 
-The current local UI has been checked against the .NET API with this flow:
+The local UI has been checked against the .NET API with this flow:
 
 1. Register a new user from `/register`.
 2. Create a post with an image and caption.
@@ -197,48 +208,39 @@ The current local UI has been checked against the .NET API with this flow:
 9. Delete the post from the feed options menu.
 10. Confirm the deleted post returns `404` from the API.
 
-## Kafka And ELK
+## Build And Test
 
-The .NET API publishes events to Kafka topics such as `post-events`, `user-events`, `search-events`, and `popular-searches`.
-
-Logstash consumes Kafka events and writes them into daily Elasticsearch indices:
-
-```text
-jerrygram-events-post-YYYY.MM.DD
-jerrygram-events-user-YYYY.MM.DD
-jerrygram-events-search-YYYY.MM.DD
-```
-
-Kibana is available at:
-
-```text
-http://localhost:15601
-```
-
-Use the `Jerrygram Events` data view for `jerrygram-events-*`.
-
-## Development Notes
-
-- Elasticsearch can show `yellow` health in this single-node local setup because replicas are unassigned. That is expected for local development.
-- Existing seeded image URLs may return Blob `404` responses if the remote blob no longer exists. The UI uses fallback image rendering for those cases.
-- Redis cache invalidation is broad for feed, public posts, saved posts, detail pages, and explore data after create, update, delete, like, unlike, save, and unsave actions.
-- The home feed includes the current user's own posts as well as followed-user posts.
-- If another project is using common ports like `3000`, `6379`, `8080`, or `9200`, keep Jerrygram on the `JG_*` ports listed above.
-
-## Build Commands
-
-Backend:
+.NET backend:
 
 ```powershell
 dotnet build backend-dotnet/WebApi/WebApi.csproj
 ```
 
-Frontend:
+React frontend:
 
 ```powershell
 cd frontend-react
+npm run test:ci
 npm run build
+npm run e2e
 ```
+
+Screenshot capture:
+
+```powershell
+cd frontend-react
+npm run screenshots
+```
+
+GitHub Actions runs build/test checks for the .NET backend, Java backend, recommendation service, and React frontend. It does not deploy the app.
+
+## Development Notes
+
+- Elasticsearch can show `yellow` health in this single-node local setup because replicas are unassigned. That is expected for local development.
+- Existing seeded image URLs may return Blob `404` responses if the remote blob no longer exists. The UI uses fallback image rendering for those cases.
+- Redis cache invalidation covers feed, public posts, saved posts, detail pages, and explore data after post and interaction changes.
+- The home feed includes the current user's own posts as well as followed-user posts.
+- If another project is using common ports like `3000`, `6379`, `8080`, or `9200`, keep Jerrygram on the `JG_*` ports listed above.
 
 ## License
 

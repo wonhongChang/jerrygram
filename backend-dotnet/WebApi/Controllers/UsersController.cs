@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using WebApi.Extensions;
+using WebApi.Requests;
 
 namespace WebApi.Controllers
 {
@@ -25,7 +26,7 @@ namespace WebApi.Controllers
         private readonly ICommandHandler<UnfollowUserCommand> _unfollowUserHandler;
         private readonly ICommandHandler<UploadAvatarCommand, object> _uploadAvatarHandler;
 
-        private readonly IEventService _eventService;
+        private readonly IEventPublisher _eventPublisher;
         private readonly ILogger<UsersController> _logger;
 
         public UsersController(
@@ -36,7 +37,7 @@ namespace WebApi.Controllers
             ICommandHandler<FollowUserCommand> followUserHandler,
             ICommandHandler<UnfollowUserCommand> unfollowUserHandler,
             ICommandHandler<UploadAvatarCommand, object> uploadAvatarHandler,
-            IEventService eventService,
+            IEventPublisher eventPublisher,
             ILogger<UsersController> logger)
         {
             _getCurrentUserHandler = getCurrentUserHandler;
@@ -46,7 +47,7 @@ namespace WebApi.Controllers
             _followUserHandler = followUserHandler;
             _unfollowUserHandler = unfollowUserHandler;
             _uploadAvatarHandler = uploadAvatarHandler;
-            _eventService = eventService;
+            _eventPublisher = eventPublisher;
             _logger = logger;
         }
 
@@ -95,17 +96,7 @@ namespace WebApi.Controllers
                 };
 
                 HttpContext.EnrichEvent(userEvent);
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _eventService.PublishUserEventAsync(userEvent);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to publish profile view event for user: {Username}", username);
-                    }
-                });
+                await _eventPublisher.QueueUserEventAsync(userEvent);
 
                 return Ok(result);
             }
@@ -158,17 +149,7 @@ namespace WebApi.Controllers
                 };
 
                 HttpContext.EnrichEvent(followEvent);
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _eventService.PublishUserEventAsync(followEvent);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to publish follow event for user: {UserId}", id);
-                    }
-                });
+                await _eventPublisher.QueueUserEventAsync(followEvent);
 
                 return Ok();
             }
@@ -214,17 +195,7 @@ namespace WebApi.Controllers
                 };
 
                 HttpContext.EnrichEvent(unfollowEvent);
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _eventService.PublishUserEventAsync(unfollowEvent);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to publish unfollow event for user: {UserId}", id);
-                    }
-                });
+                await _eventPublisher.QueueUserEventAsync(unfollowEvent);
 
                 return NoContent();
             }
@@ -284,7 +255,7 @@ namespace WebApi.Controllers
         /// <param name="dto">Multipart/form-data containing image file.</param>
         /// <returns>Returns uploaded image URL</returns>
         [HttpPost("me/avatar")]
-        public async Task<IActionResult> UploadAvatar([FromForm] AvatarUploadDto dto)
+        public async Task<IActionResult> UploadAvatar([FromForm] AvatarUploadRequest request)
         {
             var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userIdStr == null || !Guid.TryParse(userIdStr, out var userId))
@@ -292,6 +263,11 @@ namespace WebApi.Controllers
 
             try
             {
+                var dto = new AvatarUploadDto
+                {
+                    Avatar = request.Avatar.ToUploadFile()!
+                };
+
                 var command = new UploadAvatarCommand { UserId = userId, Dto = dto };
                 var result = await _uploadAvatarHandler.HandleAsync(command);
                 return Ok(result);

@@ -28,11 +28,11 @@ namespace Application.Commands.Auth
         {
             var dto = command.Dto;
             
-            _logger.LogInformation("Registering user with email: {Email}", dto.Email);
+            _logger.LogInformation("Registering user with username: {Username}", dto.Username);
 
             if (await _userRepository.ExistsByEmailAsync(dto.Email))
             {
-                _logger.LogWarning("Registration failed: Email {Email} already exists", dto.Email);
+                _logger.LogWarning("Registration failed: email already exists");
                 throw new ArgumentException("This email is already in use.");
             }
 

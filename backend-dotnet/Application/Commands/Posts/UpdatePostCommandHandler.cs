@@ -2,6 +2,7 @@ using Application.Common;
 using Application.Interfaces;
 using Domain.Entities;
 using Domain.ValueObjects;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Commands.Posts
 {
@@ -13,6 +14,7 @@ namespace Application.Commands.Posts
         private readonly IBlobService _blobService;
         private readonly IElasticService _elastic;
         private readonly ICacheService _cacheService;
+        private readonly ILogger<UpdatePostCommandHandler> _logger;
 
         public UpdatePostCommandHandler(
             IPostRepository postRepository,
@@ -20,7 +22,8 @@ namespace Application.Commands.Posts
             ITagRepository tagRepository,
             IBlobService blobService,
             IElasticService elastic,
-            ICacheService cacheService)
+            ICacheService cacheService,
+            ILogger<UpdatePostCommandHandler> logger)
         {
             _postRepository = postRepository;
             _postTagRepository = postTagRepository;
@@ -28,6 +31,7 @@ namespace Application.Commands.Posts
             _blobService = blobService;
             _elastic = elastic;
             _cacheService = cacheService;
+            _logger = logger;
         }
 
         public async Task<Post> HandleAsync(UpdatePostCommand command)
@@ -43,9 +47,9 @@ namespace Application.Commands.Posts
             var oldTags = post.PostTags.Select(pt => pt.Tag).ToList();
 
             bool captionChanged = false;
-            if (!string.IsNullOrWhiteSpace(command.Dto.Caption) && command.Dto.Caption != post.Caption)
+            if (command.Dto.Caption != null && command.Dto.Caption != post.Caption)
             {
-                post.Caption = command.Dto.Caption;
+                post.Caption = string.IsNullOrWhiteSpace(command.Dto.Caption) ? null : command.Dto.Caption;
                 captionChanged = true;
             }
 
@@ -105,15 +109,24 @@ namespace Application.Commands.Posts
 
             await _postRepository.SaveChangesAsync();
 
-            await _elastic.IndexPostAsync(new PostIndex
+            try
             {
-                Id = post.Id,
-                Caption = post.Caption ?? string.Empty,
-                UserId = post.User.Id,
-                Username = post.User.Username,
-                CreatedAt = post.CreatedAt,
-                Visibility = post.Visibility
-            });
+                await _elastic.IndexPostAsync(new PostIndex
+                {
+                    Id = post.Id,
+                    UserId = post.UserId,
+                    Caption = post.Caption ?? string.Empty,
+                    Tags = post.Hashtags.ToList(),
+                    ImageUrl = post.ImageUrl,
+                    Username = post.User.Username,
+                    CreatedAt = post.CreatedAt,
+                    Visibility = post.Visibility
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to index updated post {PostId}", post.Id);
+            }
 
             _cacheService.RemoveByPattern($"post_details_{post.Id}");
             _cacheService.RemoveByPattern("public_posts");
