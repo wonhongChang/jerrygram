@@ -20,14 +20,14 @@ ASP.NET Core Web API for Jerrygram. This is the default backend used by the Reac
 
 ```text
 backend-dotnet/
-├── Application/            commands, queries, DTOs, interfaces
-├── Domain/                 entities, constants, value objects
-├── Persistence/            EF Core DbContext, migrations, repositories
-├── Infrastructure/         auth, cache, blob, search, Kafka, recommendation clients
-├── WebApi/                 controllers, middleware, validators, startup
-├── Domain.Tests/           domain behavior tests
-├── Infrastructure.Tests/   infrastructure query tests
-└── Jerrygram/              Visual Studio solution
+|- Application/            commands, queries, DTOs, interfaces
+|- Domain/                 entities, constants, value objects
+|- Persistence/            EF Core DbContext, migrations, repositories
+|- Infrastructure/         auth, cache, blob, search, Kafka, recommendation clients
+|- WebApi/                 controllers, middleware, validators, startup
+|- Domain.Tests/           domain behavior tests
+|- Infrastructure.Tests/   infrastructure query tests
+\- Jerrygram/              Visual Studio solution
 ```
 
 ## Local Configuration

@@ -8,44 +8,46 @@ Node.js recommendation service for Jerrygram. It reads recent liked post caption
 
 ```text
 jerrygram-recommend/
-├── cache/
-│   ├── embeddingCache.js
-│   ├── hybridEmbeddingCache.js
-│   └── redisEmbeddingCache.js
-├── config/
-│   ├── app.js
-│   ├── database.js
-│   ├── openai.js
-│   └── redis.js
-├── controllers/
-│   ├── index.js
-│   └── recommendController.js
-├── middleware/
-│   ├── cors.js
-│   ├── errorHandler.js
-│   ├── logger.js
-│   ├── monitoring.js
-│   └── security.js
-├── models/
-│   ├── Post.js
-│   ├── RecommendationRequest.js
-│   └── ValidationError.js
-├── routes/
-│   └── index.js
-├── services/
-│   ├── embeddingService.js
-│   ├── postRepository.js
-│   └── recommendService.js
-├── utils/
-│   └── cosine.js
-├── validation/
-│   └── validators.js
-├── .dockerignore
-├── .env.example
-├── Dockerfile
-├── index.js
-├── package-lock.json
-└── package.json
+|- cache/
+|  |- embeddingCache.js
+|  |- hybridEmbeddingCache.js
+|  \- redisEmbeddingCache.js
+|- config/
+|  |- app.js
+|  |- database.js
+|  |- openai.js
+|  \- redis.js
+|- controllers/
+|  |- index.js
+|  \- recommendController.js
+|- middleware/
+|  |- cors.js
+|  |- errorHandler.js
+|  |- logger.js
+|  |- monitoring.js
+|  \- security.js
+|- models/
+|  |- Post.js
+|  |- RecommendationRequest.js
+|  \- ValidationError.js
+|- routes/
+|  \- index.js
+|- services/
+|  |- embeddingService.js
+|  |- postRepository.js
+|  \- recommendService.js
+|- test/
+|  \- recommendation.test.js
+|- utils/
+|  \- cosine.js
+|- validation/
+|  \- validators.js
+|- .dockerignore
+|- .env.example
+|- Dockerfile
+|- index.js
+|- package-lock.json
+\- package.json
 ```
 
 ## Endpoints
@@ -80,6 +82,7 @@ REDIS_PASSWORD=
 ```bash
 npm install
 npm start
+npm test
 npm run lint
 ```
 

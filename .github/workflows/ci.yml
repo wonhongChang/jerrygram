@@ -53,7 +53,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build
-        run: ./gradlew build -x test
+        run: ./gradlew build
 
   recommend-service:
     name: Recommendation service
@@ -77,6 +77,9 @@ jobs:
 
       - name: Lint placeholder
         run: npm run lint
+
+      - name: Unit tests
+        run: npm test
 
   frontend:
     name: React frontend

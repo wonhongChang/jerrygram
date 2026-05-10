@@ -20,25 +20,25 @@ Jerrygram의 ASP.NET Core Web API입니다. React 웹 UI가 기본적으로 사�
 
 ```text
 backend-dotnet/
-├── Application/            commands, queries, DTOs, interfaces
-├── Domain/                 entities, constants, value objects
-├── Persistence/            EF Core DbContext, migrations, repositories
-├── Infrastructure/         auth, cache, blob, search, Kafka, recommendation clients
-├── WebApi/                 controllers, middleware, validators, startup
-├── Domain.Tests/           domain behavior tests
-├── Infrastructure.Tests/   infrastructure query tests
-└── Jerrygram/              Visual Studio solution
+|- Application/            commands, queries, DTOs, interfaces
+|- Domain/                 entities, constants, value objects
+|- Persistence/            EF Core DbContext, migrations, repositories
+|- Infrastructure/         auth, cache, blob, search, Kafka, recommendation clients
+|- WebApi/                 controllers, middleware, validators, startup
+|- Domain.Tests/           domain behavior tests
+|- Infrastructure.Tests/   infrastructure query tests
+\- Jerrygram/              Visual Studio solution
 ```
 
 ## 로컬 설정
 
-로컬 실행 전에 예시 설정 파일을 복사합니다.
+실행 전에 예시 설정 파일을 복사합니다.
 
 ```powershell
 Copy-Item WebApi/appsettings.example.json WebApi/appsettings.json
 ```
 
-커밋된 Docker 설정은 루트 compose 파일의 조정된 로컬 포트를 사용합니다.
+저장소의 Docker 설정은 루트 compose 파일에서 조정한 로컬 포트를 사용합니다.
 
 ## 명령어
 
@@ -72,8 +72,8 @@ dotnet run --project backend-dotnet/WebApi/WebApi.csproj --urls http://localhost
 - `GET /api/users/{username}`
 - `GET /api/notifications`
 
-## 메모
+## 참고
 
-- `bin/`, `obj/`, `*.user`, 로컬 `appsettings.json`, `appsettings.Development.json`는 ignore 대상이며 커밋하지 않습니다.
+- `bin/`, `obj/`, `*.user`, 로컬 `appsettings.json`, `appsettings.Development.json`은 ignore 대상이며 커밋하지 않습니다.
 - `appsettings.example.json`은 공유 로컬 템플릿입니다.
-- API가 Kafka 이벤트를 발행하고, 로컬 분석 파이프라인이 이를 Elasticsearch로 적재합니다.
+- Kafka 이벤트는 API에서 발행하고 로컬 analytics 파이프라인을 통해 Elasticsearch에 적재됩니다.

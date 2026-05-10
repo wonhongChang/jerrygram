@@ -74,9 +74,11 @@ Captured from the local Docker stack on 2026-05-10:
 
 | Surface | Evidence |
 | --- | --- |
-| Kafka UI | Topics `search-events`, `post-events`, and `user-events` exist and have messages. |
-| Kibana | Elasticsearch contains `jerrygram-events-search-*`, `jerrygram-events-post-*`, and `jerrygram-events-user-*` indices. |
-| Recommend service | `GET http://localhost:13001/health` returns `status: healthy`. |
+| Kafka UI | Cluster `jerrygram-local` is online with `8` topics. `search-events`, `post-events`, and `user-events` have non-zero offsets. |
+| Kafka topics | `search-events` offset range `10`-`26`, `post-events` `1`-`20`, `user-events` `0`-`59`. |
+| Kibana / Elasticsearch | Event indices exist for `jerrygram-events-search-*`, `jerrygram-events-post-*`, and `jerrygram-events-user-*`. |
+| Elasticsearch counts | 2026-05-10 indices include search `8`, post `5`, user `12` documents. |
+| Recommend service | `GET http://localhost:13001/health` returns `status: healthy`, service `jerrygram-recommend`, version `1.0.0`. |
 
 ![Kafka UI topics](assets/screenshots/kafka-ui-topics.png)
 

@@ -2,6 +2,8 @@
 
 Language: English | [한국어](README.ko.md) | [日本語](README.ja.md)
 
+[![Build and test](https://github.com/wonhongChang/jerrygram/actions/workflows/ci.yml/badge.svg)](https://github.com/wonhongChang/jerrygram/actions/workflows/ci.yml)
+
 Jerrygram is an Instagram-style social app built with React, ASP.NET Core, PostgreSQL, Redis, Blob Storage, Elasticsearch, Kafka, Logstash, Kibana, and a Node.js recommendation service.
 
 The actively verified local path is:
@@ -121,13 +123,19 @@ dotnet test backend-dotnet/Infrastructure.Tests/Infrastructure.Tests.csproj --co
 ```
 
 ```powershell
+cd backend-java
+.\gradlew.bat test
+```
+
+```powershell
 cd frontend-react
-npm run test:ci
-npm run e2e
+npm.cmd run test:ci
+npm.cmd run e2e
 ```
 
 ```powershell
 cd jerrygram-recommend
-npm run lint
-npm audit --omit=dev
+npm.cmd test
+npm.cmd run lint
+npm.cmd audit --omit=dev
 ```

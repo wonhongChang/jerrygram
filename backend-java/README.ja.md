@@ -1,12 +1,12 @@
-# Jerrygram Java Backend
+# Jerrygram Java バックエンド
 
 Language: [English](README.md) | [한국어](README.ko.md) | 日本語
 
-Jerrygram の Java 21 + Spring Boot backend implementation です。主要な API surface を合わせ、PostgreSQL、Redis、Elasticsearch、Blob Storage oriented architecture を共有します。
+Jerrygram の Java 21 + Spring Boot バックエンド実装です。主要な API 領域を同じ形で持ち、PostgreSQL、Redis、Elasticsearch、Blob Storage を中心にした構成を共有します。
 
-React web UI は default で .NET API に接続します。この backend は Java/Spring Boot の alternate implementation として保持されています。
+React Web UI はデフォルトで .NET API に接続するため、このバックエンドは Java 実装として維持しています。
 
-## Stack
+## 技術スタック
 
 - Java 21
 - Spring Boot 3.2
@@ -16,35 +16,35 @@ React web UI は default で .NET API に接続します。この backend は Ja
 - Redis / Spring Cache
 - Elasticsearch
 - Spring Security + JWT
-- Azure-compatible Blob Storage support
+- Azure 互換 Blob Storage 対応
 - Gradle
 
-## Layers
+## レイヤー
 
 ```text
 src/main/java/com/jerrygram/
-├── presentation/       REST controllers
-├── application/        commands, queries, DTOs, interfaces
-├── domain/             entities, enums, value objects
-├── infrastructure/     persistence, cache, search, blob, security
-└── JerrygramApplication.java
+|- presentation/       REST controllers
+|- application/        commands, queries, DTOs, interfaces
+|- domain/             entities, enums, value objects
+|- infrastructure/     persistence, cache, search, blob, security
+\- JerrygramApplication.java
 ```
 
-## Local Environment
+## ローカル環境
 
-Local run の前に example file をコピーします。
+実行前にサンプルファイルをコピーします。
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Example values は root Docker stack と同じ adjusted local ports を使います。
+サンプル設定はルート Docker スタックと同じ調整済みポートを使用します。
 
 - PostgreSQL: `localhost:15433`
 - Redis: `localhost:16380`
 - Elasticsearch: `http://localhost:19200`
 
-## Commands
+## コマンド
 
 ```powershell
 .\gradlew.bat build
@@ -54,14 +54,14 @@ Example values は root Docker stack と同じ adjusted local ports を使いま
 .\gradlew.bat bootRun --args="--spring.profiles.active=dev"
 ```
 
-bash-compatible shells:
+bash 互換シェルでは次を使えます。
 
 ```bash
 ./gradlew build
 ./gradlew bootRun --args="--spring.profiles.active=dev"
 ```
 
-## API Areas
+## API 領域
 
 - `POST /api/auth/register`
 - `POST /api/auth/login`
@@ -75,8 +75,9 @@ bash-compatible shells:
 - `GET /api/users/me`
 - `GET /api/users/{username}`
 
-## Notes
+## メモ
 
-- `.gradle/`, `build/`, `.idea/`, local `.env`, `application.log` は ignore 対象で、commit しません。
-- `gradle/wrapper/gradle-wrapper.jar` は clone 後に wrapper が動作するよう intentional に tracked されています。
-- Local app configuration files under `src/main/resources/application*.yml` are ignored. Use `.env.example` as the shared template.
+- `.gradle/`, `build/`, `.idea/`, ローカル `.env`, `application.log` は ignore 対象で、コミットしません。
+- `gradle/wrapper/gradle-wrapper.jar` は clone 後に wrapper が動くよう意図的に追跡しています。
+- `src/main/resources/application*.yml` 配下のローカル設定は ignore 対象です。共有テンプレートは `.env.example` を使います。
+- CI は `./gradlew build` で Java smoke test を実行します。

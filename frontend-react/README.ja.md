@@ -1,10 +1,10 @@
-# Jerrygram React Frontend
+# Jerrygram React フロントエンド
 
 Language: [English](README.md) | [한국어](README.ko.md) | 日本語
 
-Jerrygram の React + TypeScript web UI です。default では .NET API に接続し、authentication、feed、post creation、profile、search、notifications、comments、saved posts、Kafka based search trend screens を扱います。
+Jerrygram の React + TypeScript Web UI です。デフォルトで .NET API に接続し、認証、フィード、投稿作成、プロフィール、検索、通知、コメント、保存済み投稿、Kafka ベースの検索トレンド画面を提供します。
 
-## Stack
+## 技術スタック
 
 - React 18
 - TypeScript
@@ -12,24 +12,24 @@ Jerrygram の React + TypeScript web UI です。default では .NET API に接�
 - Axios
 - Tailwind CSS
 - React Icons
-- Playwright E2E tests
+- Playwright E2E テスト
 
-## Local Environment
+## ローカル環境
 
-実行前に example environment file をコピーします。
+アプリ起動前にサンプルファイルをコピーします。
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Default values:
+デフォルト値:
 
 ```env
 PORT=13000
 REACT_APP_API_URL=http://localhost:5018/api
 ```
 
-## Commands
+## コマンド
 
 ```powershell
 npm install
@@ -37,36 +37,36 @@ npm start
 ```
 
 ```powershell
-npm run test:ci
-npm run build
-npm run e2e
+npm.cmd run test:ci
+npm.cmd run build
+npm.cmd run e2e
 ```
 
-Development server は `http://localhost:13000` で動作します。
+開発サーバーは `http://localhost:13000` で起動します。
 
-## Structure
+## 構成
 
 ```text
 src/
-├── components/
-│   ├── layout/
-│   ├── post/
-│   └── ui/
-├── contexts/
-├── pages/
-├── services/
-├── types/
-├── utils/
-├── App.tsx
-└── index.tsx
+|- components/
+|  |- layout/
+|  |- post/
+|  \- ui/
+|- contexts/
+|- pages/
+|- services/
+|- types/
+|- utils/
+|- App.tsx
+\- index.tsx
 
 e2e/
-├── fixtures/
-└── jerrygram.spec.ts
+|- fixtures/
+\- jerrygram.spec.ts
 ```
 
-## Notes
+## メモ
 
-- `build/`, `playwright-report/`, `test-results/`, `node_modules/`, local `.env`, dev server logs は ignore 対象で、commit しません。
-- Root docs 用の screenshots は `npm run screenshots` で更新できます。
-- UI は Docker stack の adjusted local ports を前提にしています。
+- `build/`, `playwright-report/`, `test-results/`, `node_modules/`, ローカル `.env`, 開発サーバーログは ignore 対象で、コミットしません。
+- ルートドキュメント用スクリーンショットは `npm run screenshots` で更新できます。
+- UI は Docker スタックで使用する調整済みローカルポートを前提にしています。

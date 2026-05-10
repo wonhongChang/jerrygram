@@ -9,21 +9,21 @@ This document classifies the indices visible in the local Kibana/Elasticsearch U
 | Pattern / index | Why |
 | --- | --- |
 | `.internal.alerts-*`, `.kibana*` | Kibana system indices and alerting internals. Do not delete during normal cleanup. |
-| `posts` | Active app search index for post search and discovery. |
-| `users` | Active app search index for user search. |
-| `tags` | Active app search index for hashtag search. |
-| `jerrygram-events-post-*` | Kafka/Logstash event evidence for post analytics. |
-| `jerrygram-events-user-*` | Kafka/Logstash event evidence for user analytics. |
-| `jerrygram-events-search-*` | Kafka/Logstash event evidence for popular and trending search terms. |
+| `posts` | Active app search index for post search and discovery. Current local count: `16`. |
+| `users` | Active app search index for user search. Current local count: `18`. |
+| `tags` | Active app search index for hashtag search. Current local count: `9`. |
+| `jerrygram-events-post-*` | Kafka/Logstash event evidence for post analytics. Current local counts include `12` on 2026-05-09 and `5` on 2026-05-10. |
+| `jerrygram-events-user-*` | Kafka/Logstash event evidence for user analytics. Current local counts include `45` on 2026-05-09 and `12` on 2026-05-10. |
+| `jerrygram-events-search-*` | Kafka/Logstash event evidence for popular and trending search terms. Current local counts include `8` on 2026-05-09 and `8` on 2026-05-10. |
 
 ## Cleanup Candidates
 
 | Index | Current observation | Recommendation |
 | --- | --- | --- |
 | `jerrygram-logs-000001` | `0` documents, alias `jerrygram-logs` | Safe local cleanup candidate if the Logstash log alias is not being demonstrated. |
-| `jerrygram-dotnet-backend-2025.07.29` | Old app log index with `1` document | Keep only if you want old log evidence; otherwise archive/delete locally. |
-| `jerrygram-java-backend-2025.10.23` | Old Java backend log index with `1` document | Keep only if Java log history is useful for debugging or audit history. |
-| `jerrygram-java-backend-2026.05.09` | Recent Java backend log index with `3` documents | Optional. Useful if demonstrating the Java backend; not required by the active React + .NET runtime path. |
+| `jerrygram-dotnet-backend-2025.07.29` | Old app log index with `1` document | Keep only if old .NET log evidence is useful; otherwise archive/delete locally. |
+| `jerrygram-java-backend-2025.10.23` | Old Java backend log index with `1` document | Keep only if old Java log evidence is useful. |
+| `jerrygram-java-backend-2026.05.09` | Recent Java backend log index with `3` documents | Optional. Useful when demonstrating the Java backend, not required by the active React + .NET runtime path. |
 
 ## Why Some Indices Are Yellow
 

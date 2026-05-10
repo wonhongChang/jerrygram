@@ -2,33 +2,52 @@
 
 언어: [English](README.md) | 한국어 | [日本語](README.ja.md)
 
-Jerrygram의 Node.js 추천 서비스입니다. PostgreSQL에서 최근 좋아요한 게시물 캡션을 읽고, OpenAI embedding을 생성한 뒤, cosine similarity로 후보 게시물을 점수화해 .NET API에 추천 결과를 반환합니다.
+Jerrygram의 Node.js 추천 서비스입니다. PostgreSQL에서 최근 좋아요한 게시물 캡션을 읽고, OpenAI embedding을 생성한 뒤 cosine similarity로 후보 게시물을 점수화하여 .NET API에 정렬된 추천 결과를 반환합니다.
 
 ## 구조
 
 ```text
 jerrygram-recommend/
-├── cache/
-│   ├── embeddingCache.js
-│   ├── hybridEmbeddingCache.js
-│   └── redisEmbeddingCache.js
-├── config/
-│   ├── app.js
-│   ├── database.js
-│   ├── openai.js
-│   └── redis.js
-├── controllers/
-│   ├── index.js
-│   └── recommendController.js
-├── middleware/
-├── models/
-├── routes/
-├── services/
-├── utils/
-├── validation/
-├── .dockerignore
-├── Dockerfile
-└── index.js
+|- cache/
+|  |- embeddingCache.js
+|  |- hybridEmbeddingCache.js
+|  \- redisEmbeddingCache.js
+|- config/
+|  |- app.js
+|  |- database.js
+|  |- openai.js
+|  \- redis.js
+|- controllers/
+|  |- index.js
+|  \- recommendController.js
+|- middleware/
+|  |- cors.js
+|  |- errorHandler.js
+|  |- logger.js
+|  |- monitoring.js
+|  \- security.js
+|- models/
+|  |- Post.js
+|  |- RecommendationRequest.js
+|  \- ValidationError.js
+|- routes/
+|  \- index.js
+|- services/
+|  |- embeddingService.js
+|  |- postRepository.js
+|  \- recommendService.js
+|- test/
+|  \- recommendation.test.js
+|- utils/
+|  \- cosine.js
+|- validation/
+|  \- validators.js
+|- .dockerignore
+|- .env.example
+|- Dockerfile
+|- index.js
+|- package-lock.json
+\- package.json
 ```
 
 ## 엔드포인트
@@ -58,15 +77,15 @@ REDIS_URL=redis://localhost:16380
 REDIS_PASSWORD=
 ```
 
-## 명령어
+## 로컬 명령어
 
 ```bash
 npm install
 npm start
+npm test
 npm run lint
-npm audit --omit=dev
 ```
 
-## Docker 메모
+## Docker 참고
 
-`.dockerignore`는 로컬 `node_modules`, `.env`, 로그, cache/build 산출물이 Docker build context에 들어가지 않도록 막습니다. 런타임 설정은 이미지에 복사하지 않고 Docker Compose 환경 변수로 전달합니다.
+`.dockerignore`는 로컬 `node_modules`, `.env`, 로그, 캐시/빌드 결과물을 Docker build context에서 제외합니다. 런타임 설정은 이미지에 복사하지 않고 Docker Compose 환경 변수로 전달합니다.

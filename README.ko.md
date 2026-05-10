@@ -2,9 +2,11 @@
 
 언어: [English](README.md) | 한국어 | [日本語](README.ja.md)
 
+[![Build and test](https://github.com/wonhongChang/jerrygram/actions/workflows/ci.yml/badge.svg)](https://github.com/wonhongChang/jerrygram/actions/workflows/ci.yml)
+
 Jerrygram은 React, ASP.NET Core, PostgreSQL, Redis, Blob Storage, Elasticsearch, Kafka, Logstash, Kibana, Node.js 추천 서비스를 함께 사용하는 Instagram 스타일 소셜 앱입니다.
 
-현재 기본 검증 경로는 다음과 같습니다.
+현재 검증한 기본 실행 경로는 다음과 같습니다.
 
 - React 웹 UI: `http://localhost:13000`
 - ASP.NET Core Web API: `http://localhost:5018`
@@ -31,8 +33,8 @@ Jerrygram은 React, ASP.NET Core, PostgreSQL, Redis, Blob Storage, Elasticsearch
 - [백엔드 아키텍처](docs/backend-architecture.ko.md)
 - [추천과 Kafka 증거](docs/recommendation-and-kafka.ko.md)
 - [Elasticsearch 인덱스 목록](docs/elasticsearch-indexes.ko.md)
-- [환경 변수와 secret 정리](docs/env-and-secrets.ko.md)
-- [Seed 데이터](infra/seed/README.ko.md)
+- [환경 변수와 시크릿 설정](docs/env-and-secrets.ko.md)
+- [시드 데이터](infra/seed/README.ko.md)
 
 ## 컴포넌트 README
 
@@ -41,23 +43,23 @@ Jerrygram은 React, ASP.NET Core, PostgreSQL, Redis, Blob Storage, Elasticsearch
 - [React 프론트엔드](frontend-react/README.ko.md)
 - [추천 서비스](jerrygram-recommend/README.ko.md)
 
-## 주요 기능
+## 기능
 
-- JWT 기반 회원가입, 로그인, 로그아웃, 현재 사용자 로딩
-- multipart 이미지 업로드 기반 게시물 생성
+- 회원가입, 로그인, 로그아웃, 현재 사용자 로딩을 포함한 JWT 인증
+- multipart 업로드 기반 사진 게시물 생성
 - 홈 피드, 공개 게시물, 게시물 상세, 탐색, 프로필, 검색 화면
 - 좋아요, 댓글, 팔로우, 알림, 프로필 수정, 저장한 게시물
 - Redis 캐시와 인메모리 fallback
 - Elasticsearch 기반 검색과 탐색
 - .NET API의 Kafka 이벤트 발행
-- Kafka에서 Logstash/Kafka Connect를 거쳐 Elasticsearch로 이어지는 분석 파이프라인
-- `jerrygram-events-*` Kibana 확인
-- 캡션 임베딩과 cosine similarity 기반 Node.js 추천 서비스
-- Playwright E2E 테스트
+- Kafka에서 Logstash/Kafka Connect를 거쳐 Elasticsearch로 적재되는 이벤트 파이프라인
+- `jerrygram-events-*`를 확인할 수 있는 Kibana 구성
+- 캡션 임베딩과 cosine similarity로 후보 게시물을 정렬하는 Node.js 추천 서비스
+- 회원가입, 피드 상호작용, Kafka 기반 검색 트렌드를 검증하는 Playwright E2E 테스트
 
 ## 로컬 포트
 
-Jerrygram은 다른 Docker 프로젝트와 충돌하지 않도록 조정된 호스트 포트를 사용합니다.
+Jerrygram은 다른 Docker 프로젝트와 충돌하지 않도록 호스트 포트를 조정해 사용합니다.
 
 | 서비스 | URL / 호스트 포트 |
 | --- | --- |
@@ -73,7 +75,7 @@ Jerrygram은 다른 Docker 프로젝트와 충돌하지 않도록 조정된 호�
 | Logstash API | `http://localhost:19600` |
 | Kafka Connect | `http://localhost:18083` |
 
-## 실행 준비
+## 설정
 
 ```powershell
 Copy-Item .env.example .env
@@ -83,7 +85,7 @@ Copy-Item jerrygram-recommend/.env.example jerrygram-recommend/.env
 Copy-Item backend-java/.env.example backend-java/.env
 ```
 
-secret 설정은 [docs/env-and-secrets.ko.md](docs/env-and-secrets.ko.md)를 확인하세요.
+시크릿 관리 방식은 [docs/env-and-secrets.ko.md](docs/env-and-secrets.ko.md)를 참고하세요.
 
 ## Docker 인프라 실행
 
@@ -105,7 +107,7 @@ npm install
 npm start
 ```
 
-## Seed와 증거 확인
+## 시드와 증거 확인
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\infra\seed\seed-jerrygram.ps1
@@ -121,13 +123,19 @@ dotnet test backend-dotnet/Infrastructure.Tests/Infrastructure.Tests.csproj --co
 ```
 
 ```powershell
+cd backend-java
+.\gradlew.bat test
+```
+
+```powershell
 cd frontend-react
-npm run test:ci
-npm run e2e
+npm.cmd run test:ci
+npm.cmd run e2e
 ```
 
 ```powershell
 cd jerrygram-recommend
-npm run lint
-npm audit --omit=dev
+npm.cmd test
+npm.cmd run lint
+npm.cmd audit --omit=dev
 ```

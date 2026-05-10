@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test",
     "lint": "echo \"Linting not configured\" && exit 0"
   },
   "dependencies": {

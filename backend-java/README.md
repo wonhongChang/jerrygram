@@ -23,11 +23,11 @@ The React web UI is wired to the .NET API by default, so this backend is kept as
 
 ```text
 src/main/java/com/jerrygram/
-├── presentation/       REST controllers
-├── application/        commands, queries, DTOs, interfaces
-├── domain/             entities, enums, value objects
-├── infrastructure/     persistence, cache, search, blob, security
-└── JerrygramApplication.java
+|- presentation/       REST controllers
+|- application/        commands, queries, DTOs, interfaces
+|- domain/             entities, enums, value objects
+|- infrastructure/     persistence, cache, search, blob, security
+\- JerrygramApplication.java
 ```
 
 ## Local Environment
@@ -80,3 +80,4 @@ On bash-compatible shells:
 - `.gradle/`, `build/`, `.idea/`, local `.env`, and `application.log` are ignored and should not be committed.
 - `gradle/wrapper/gradle-wrapper.jar` is intentionally tracked so the wrapper works after clone.
 - Local app configuration files under `src/main/resources/application*.yml` are ignored; use `.env.example` as the shared template.
+- CI runs the Java smoke tests with `./gradlew build`.

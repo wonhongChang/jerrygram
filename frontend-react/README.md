@@ -37,9 +37,9 @@ npm start
 ```
 
 ```powershell
-npm run test:ci
-npm run build
-npm run e2e
+npm.cmd run test:ci
+npm.cmd run build
+npm.cmd run e2e
 ```
 
 The development server runs on `http://localhost:13000`.
@@ -48,21 +48,21 @@ The development server runs on `http://localhost:13000`.
 
 ```text
 src/
-├── components/
-│   ├── layout/
-│   ├── post/
-│   └── ui/
-├── contexts/
-├── pages/
-├── services/
-├── types/
-├── utils/
-├── App.tsx
-└── index.tsx
+|- components/
+|  |- layout/
+|  |- post/
+|  \- ui/
+|- contexts/
+|- pages/
+|- services/
+|- types/
+|- utils/
+|- App.tsx
+\- index.tsx
 
 e2e/
-├── fixtures/
-└── jerrygram.spec.ts
+|- fixtures/
+\- jerrygram.spec.ts
 ```
 
 ## Notes

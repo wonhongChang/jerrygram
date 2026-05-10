@@ -21,7 +21,7 @@ This folder contains a small data set for demonstrating feed ranking, blob-backe
 2. Upload each post image with the matching caption and visibility.
 3. Create the follow relationships.
 4. Apply likes and saves.
-5. Run the search terms in order to publish enough `SearchPerformed` events for popular/trending search screens.
+5. Run the search terms in order to publish enough search events for popular/trending search screens.
 
 The current E2E tests use the same scenario shape with mocked API responses, so the UI can be validated in CI without requiring the full Docker stack.
 

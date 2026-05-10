@@ -1,46 +1,65 @@
-# Jerrygram Recommend API
+# Jerrygram レコメンド API
 
 Language: [English](README.md) | [한국어](README.ko.md) | 日本語
 
-Jerrygram の Node.js recommendation service です。PostgreSQL から最近 liked した post captions を読み、OpenAI embeddings を生成し、cosine similarity で candidate posts を score して .NET API に recommendation results を返します。
+Jerrygram の Node.js レコメンドサービスです。PostgreSQL から最近いいねした投稿キャプションを読み、OpenAI embedding を生成し、cosine similarity で候補投稿をスコアリングして .NET API に並び替え済みの結果を返します。
 
-## Structure
+## 構成
 
 ```text
 jerrygram-recommend/
-├── cache/
-│   ├── embeddingCache.js
-│   ├── hybridEmbeddingCache.js
-│   └── redisEmbeddingCache.js
-├── config/
-│   ├── app.js
-│   ├── database.js
-│   ├── openai.js
-│   └── redis.js
-├── controllers/
-│   ├── index.js
-│   └── recommendController.js
-├── middleware/
-├── models/
-├── routes/
-├── services/
-├── utils/
-├── validation/
-├── .dockerignore
-├── Dockerfile
-└── index.js
+|- cache/
+|  |- embeddingCache.js
+|  |- hybridEmbeddingCache.js
+|  \- redisEmbeddingCache.js
+|- config/
+|  |- app.js
+|  |- database.js
+|  |- openai.js
+|  \- redis.js
+|- controllers/
+|  |- index.js
+|  \- recommendController.js
+|- middleware/
+|  |- cors.js
+|  |- errorHandler.js
+|  |- logger.js
+|  |- monitoring.js
+|  \- security.js
+|- models/
+|  |- Post.js
+|  |- RecommendationRequest.js
+|  \- ValidationError.js
+|- routes/
+|  \- index.js
+|- services/
+|  |- embeddingService.js
+|  |- postRepository.js
+|  \- recommendService.js
+|- test/
+|  \- recommendation.test.js
+|- utils/
+|  \- cosine.js
+|- validation/
+|  \- validators.js
+|- .dockerignore
+|- .env.example
+|- Dockerfile
+|- index.js
+|- package-lock.json
+\- package.json
 ```
 
-## Endpoints
+## エンドポイント
 
 ```http
 GET /recommend?userId={userId}&limit=10
 GET /health
 ```
 
-## Environment
+## 環境変数
 
-Local development では `.env.example` を `.env` にコピーします。
+ローカル開発では `.env.example` を `.env` にコピーします。
 
 ```bash
 DATABASE_URL=postgresql://postgres:test@localhost:15433/jerrygram
@@ -58,15 +77,15 @@ REDIS_URL=redis://localhost:16380
 REDIS_PASSWORD=
 ```
 
-## Commands
+## ローカルコマンド
 
 ```bash
 npm install
 npm start
+npm test
 npm run lint
-npm audit --omit=dev
 ```
 
-## Docker Notes
+## Docker メモ
 
-`.dockerignore` excludes local `node_modules`, `.env`, logs, and cache/build outputs from the Docker build context. Runtime settings should be passed through Docker Compose environment variables rather than copied into the image.
+`.dockerignore` はローカル `node_modules`, `.env`, ログ, キャッシュ/ビルド出力を Docker build context から除外します。ランタイム設定はイメージにコピーせず、Docker Compose の環境変数で渡します。
