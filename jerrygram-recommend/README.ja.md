@@ -1,8 +1,8 @@
 # Jerrygram Recommend API
 
-Language: English | [한국어](README.ko.md) | [日本語](README.ja.md)
+Language: [English](README.md) | [한국어](README.ko.md) | 日本語
 
-Node.js recommendation service for Jerrygram. It reads recent liked post captions from PostgreSQL, generates embeddings with OpenAI, scores candidate posts by cosine similarity, and returns ranked recommendations to the .NET API.
+Jerrygram の Node.js recommendation service です。PostgreSQL から最近 liked した post captions を読み、OpenAI embeddings を生成し、cosine similarity で candidate posts を score して .NET API に recommendation results を返します。
 
 ## Structure
 
@@ -21,31 +21,14 @@ jerrygram-recommend/
 │   ├── index.js
 │   └── recommendController.js
 ├── middleware/
-│   ├── cors.js
-│   ├── errorHandler.js
-│   ├── logger.js
-│   ├── monitoring.js
-│   └── security.js
 ├── models/
-│   ├── Post.js
-│   ├── RecommendationRequest.js
-│   └── ValidationError.js
 ├── routes/
-│   └── index.js
 ├── services/
-│   ├── embeddingService.js
-│   ├── postRepository.js
-│   └── recommendService.js
 ├── utils/
-│   └── cosine.js
 ├── validation/
-│   └── validators.js
 ├── .dockerignore
-├── .env.example
 ├── Dockerfile
-├── index.js
-├── package-lock.json
-└── package.json
+└── index.js
 ```
 
 ## Endpoints
@@ -57,7 +40,7 @@ GET /health
 
 ## Environment
 
-Copy `.env.example` to `.env` for local development.
+Local development では `.env.example` を `.env` にコピーします。
 
 ```bash
 DATABASE_URL=postgresql://postgres:test@localhost:15433/jerrygram
@@ -75,12 +58,13 @@ REDIS_URL=redis://localhost:16380
 REDIS_PASSWORD=
 ```
 
-## Local Commands
+## Commands
 
 ```bash
 npm install
 npm start
 npm run lint
+npm audit --omit=dev
 ```
 
 ## Docker Notes

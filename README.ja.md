@@ -2,23 +2,23 @@
 
 Language: [English](README.md) | [한국어](README.ko.md) | 日本語
 
-Jerrygram は Instagram 風のフルスタック SNS アプリです。React、ASP.NET Core、PostgreSQL、Redis、ローカル/Azure 互換 Blob Storage、Elasticsearch、Kafka、Logstash、Kibana、Node.js 推薦サービスを、ローカルで再現できる構成としてまとめています。
+Jerrygram は、React、ASP.NET Core、PostgreSQL、Redis、Blob Storage、Elasticsearch、Kafka、Logstash、Kibana、Node.js recommendation service を組み合わせた Instagram 風の social app です。
 
-現在確認済みの基本構成は次の通りです。
+現在の標準確認ルートは次の通りです。
 
-- React Web UI: `http://localhost:13000`
+- React web UI: `http://localhost:13000`
 - ASP.NET Core Web API: `http://localhost:5018`
-- PostgreSQL、Redis、Elasticsearch、Kafka、Kafka UI、Logstash、Kibana、Kafka Connect、推薦サービスは Docker で起動
+- Docker infrastructure: PostgreSQL, Redis, Elasticsearch, Kafka, Kafka UI, Logstash, Kibana, Kafka Connect, recommendation service
 
-リポジトリには Java/Spring の代替バックエンドも含まれていますが、現在の Web UI は標準で .NET API に接続します。
+この repository には Java/Spring Boot backend も含まれています。現在の web UI は default で .NET API に接続します。
 
-## アーキテクチャ
+## Architecture
 
 ![Jerrygram architecture](docs/assets/jerrygram-architecture.png)
 
-バックエンド内部の構造は [docs/backend-architecture.md](docs/backend-architecture.md) にまとめています。
+Backend internals are documented in [docs/backend-architecture.ja.md](docs/backend-architecture.ja.md).
 
-## スクリーンショット
+## Screenshots
 
 ![Register screen](docs/assets/screenshots/jerrygram-register.png)
 
@@ -26,7 +26,7 @@ Jerrygram は Instagram 風のフルスタック SNS アプリです。React、A
 
 ![Search trends screen](docs/assets/screenshots/jerrygram-search.png)
 
-## ドキュメントと証跡
+## Docs
 
 - [Backend architecture](docs/backend-architecture.ja.md)
 - [Recommendation and Kafka evidence](docs/recommendation-and-kafka.ja.md)
@@ -34,27 +34,34 @@ Jerrygram は Instagram 風のフルスタック SNS アプリです。React、A
 - [Environment and secret setup](docs/env-and-secrets.ja.md)
 - [Seed data](infra/seed/README.ja.md)
 
-## 主な機能
+## Component READMEs
 
-- JWT ベースの登録、ログイン、ログアウト、現在ユーザー読み込み
-- multipart 画像アップロードによる投稿作成
-- ホームフィード、公開投稿、投稿詳細、探索、プロフィール、検索画面
-- いいね、コメント、フォロー、通知、プロフィール編集、保存済み投稿
-- Redis キャッシュとインメモリ fallback
-- Elasticsearch ベースの検索と探索
-- .NET API から Kafka へのイベント発行
-- Kafka から Logstash/Kafka Connect を経由して Elasticsearch に保存する分析パイプライン
-- `jerrygram-events-*` を Kibana で確認できる構成
-- キャプション embedding と cosine similarity による Node.js 推薦サービス
-- 登録、フィード操作、Kafka ベース検索トレンドを検証する Playwright E2E テスト
+- [.NET backend](backend-dotnet/README.ja.md)
+- [Java backend](backend-java/README.ja.md)
+- [React frontend](frontend-react/README.ja.md)
+- [Recommendation service](jerrygram-recommend/README.ja.md)
 
-## ローカルポート
+## Main Features
 
-他の Docker プロジェクトと衝突しにくいよう、一般的なデフォルトポートからずらしています。
+- JWT based register, login, logout, and current-user loading
+- Multipart image upload for posts
+- Home feed, public posts, post detail, explore, profile, and search screens
+- Likes, comments, follows, notifications, profile editing, and saved posts
+- Redis cache with in-memory fallback
+- Elasticsearch based search and discovery
+- Kafka event publishing from the .NET API
+- Analytics pipeline from Kafka through Logstash/Kafka Connect to Elasticsearch
+- Kibana support for `jerrygram-events-*`
+- Node.js recommendation service using caption embeddings and cosine similarity
+- Playwright E2E tests
 
-| Service | URL / Host port |
+## Local Ports
+
+Jerrygram uses adjusted host ports to avoid collisions with other Docker projects.
+
+| Service | URL / host port |
 | --- | --- |
-| React Web UI | `http://localhost:13000` |
+| React web UI | `http://localhost:13000` |
 | ASP.NET Core API | `http://localhost:5018` |
 | Recommendation service | `http://localhost:13001` |
 | PostgreSQL | `localhost:15433` |
@@ -66,11 +73,7 @@ Jerrygram は Instagram 風のフルスタック SNS アプリです。React、A
 | Logstash API | `http://localhost:19600` |
 | Kafka Connect | `http://localhost:18083` |
 
-これらの値は compose ファイルの `JG_*` 環境変数で変更できます。
-
-## 環境設定
-
-ローカル実行前に example ファイルをコピーします。
+## Setup
 
 ```powershell
 Copy-Item .env.example .env
@@ -80,32 +83,21 @@ Copy-Item jerrygram-recommend/.env.example jerrygram-recommend/.env
 Copy-Item backend-java/.env.example backend-java/.env
 ```
 
-secret とポートの詳細は [docs/env-and-secrets.ja.md](docs/env-and-secrets.ja.md) を参照してください。
+For secrets, see [docs/env-and-secrets.ja.md](docs/env-and-secrets.ja.md).
 
-## ローカル起動
-
-Docker インフラを起動します。
+## Run Docker Infrastructure
 
 ```powershell
 docker compose -f docker-compose.yml -f docker-compose.kafka-elk-extended.yml up -d
 ```
 
-必要に応じて .NET migration を適用します。
+## Run .NET API
 
 ```powershell
-dotnet ef database update `
-  --project backend-dotnet/Persistence/Persistence.csproj `
-  --startup-project backend-dotnet/WebApi/WebApi.csproj
-```
-
-.NET API を起動します。
-
-```powershell
-$env:ASPNETCORE_ENVIRONMENT = "Development"
 dotnet run --project backend-dotnet/WebApi/WebApi.csproj --urls http://localhost:5018
 ```
 
-React アプリを起動します。
+## Run React Web
 
 ```powershell
 cd frontend-react
@@ -113,52 +105,29 @@ npm install
 npm start
 ```
 
-ブラウザで `http://localhost:13000` を開きます。
-
-## Kafka と ELK の証跡
-
-.NET API は `post-events`、`user-events`、`search-events`、`popular-searches` などの Kafka topic にイベントを発行します。イベントは Elasticsearch の `jerrygram-events-*` index に保存され、Kibana から確認できます。
-
-![Kafka UI topics](docs/assets/screenshots/kafka-ui-topics.png)
-
-![Kibana event indices](docs/assets/screenshots/kibana-indices.png)
-
-詳しい流れは [docs/recommendation-and-kafka.ja.md](docs/recommendation-and-kafka.ja.md) にあります。
-
-## ビルドとテスト
-
-.NET backend:
+## Seed And Evidence
 
 ```powershell
-dotnet build backend-dotnet/WebApi/WebApi.csproj
-dotnet test backend-dotnet/Domain.Tests/Domain.Tests.csproj
-dotnet test backend-dotnet/Infrastructure.Tests/Infrastructure.Tests.csproj
+powershell -ExecutionPolicy Bypass -File .\infra\seed\seed-jerrygram.ps1
+powershell -ExecutionPolicy Bypass -File .\infra\seed\verify-jerrygram-demo.ps1
 ```
 
-React frontend:
+## Verification
+
+```powershell
+dotnet build backend-dotnet/WebApi/WebApi.csproj --configuration Release
+dotnet test backend-dotnet/Domain.Tests/Domain.Tests.csproj --configuration Release
+dotnet test backend-dotnet/Infrastructure.Tests/Infrastructure.Tests.csproj --configuration Release
+```
 
 ```powershell
 cd frontend-react
 npm run test:ci
-npm run build
 npm run e2e
 ```
 
-README 用スクリーンショット:
-
 ```powershell
-cd frontend-react
-npm run screenshots
+cd jerrygram-recommend
+npm run lint
+npm audit --omit=dev
 ```
-
-GitHub Actions は .NET backend、Java backend、推薦サービス、React frontend の build/test のみを実行します。Pages 配信や本番デプロイは行いません。
-
-## Notes
-
-- 単一ノードのローカル Elasticsearch では replica が割り当てられないため、`yellow` が正常に表示されることがあります。
-- seed 画像や過去の Blob URL が消えている場合、UI は fallback 画像を表示します。
-- 他プロジェクトが `3000`、`6379`、`8080`、`9200` などを使う場合は、Jerrygram の `JG_*` ポートを維持するのがおすすめです。
-
-## License
-
-MIT License

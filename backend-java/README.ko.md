@@ -1,12 +1,12 @@
-# Jerrygram Java Backend
+# Jerrygram Java 백엔드
 
-Language: English | [한국어](README.ko.md) | [日本語](README.ja.md)
+언어: [English](README.md) | 한국어 | [日本語](README.ja.md)
 
-Java 21 + Spring Boot backend implementation for Jerrygram. It mirrors the main API surface and shares the same PostgreSQL, Redis, Elasticsearch, and Blob Storage oriented architecture.
+Jerrygram의 Java 21 + Spring Boot 백엔드 구현입니다. 주요 API 영역을 맞추고 PostgreSQL, Redis, Elasticsearch, Blob Storage 중심의 아키텍처를 공유합니다.
 
-The React web UI is wired to the .NET API by default, so this backend is kept as an alternate Java implementation.
+React 웹 UI는 기본적으로 .NET API에 연결됩니다. 이 백엔드는 Java/Spring Boot 대체 구현으로 유지됩니다.
 
-## Stack
+## 기술 스택
 
 - Java 21
 - Spring Boot 3.2
@@ -16,10 +16,10 @@ The React web UI is wired to the .NET API by default, so this backend is kept as
 - Redis / Spring Cache
 - Elasticsearch
 - Spring Security + JWT
-- Azure-compatible Blob Storage support
+- Azure 호환 Blob Storage 지원
 - Gradle
 
-## Layers
+## 레이어
 
 ```text
 src/main/java/com/jerrygram/
@@ -30,21 +30,21 @@ src/main/java/com/jerrygram/
 └── JerrygramApplication.java
 ```
 
-## Local Environment
+## 로컬 환경
 
-Copy the example file before running locally:
+로컬 실행 전에 예시 파일을 복사합니다.
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-The example uses the same adjusted local service ports as the root Docker stack:
+예시 값은 루트 Docker 스택과 같은 조정된 로컬 포트를 사용합니다.
 
 - PostgreSQL: `localhost:15433`
 - Redis: `localhost:16380`
 - Elasticsearch: `http://localhost:19200`
 
-## Commands
+## 명령어
 
 ```powershell
 .\gradlew.bat build
@@ -54,14 +54,14 @@ The example uses the same adjusted local service ports as the root Docker stack:
 .\gradlew.bat bootRun --args="--spring.profiles.active=dev"
 ```
 
-On bash-compatible shells:
+bash 호환 셸에서는 다음처럼 실행합니다.
 
 ```bash
 ./gradlew build
 ./gradlew bootRun --args="--spring.profiles.active=dev"
 ```
 
-## API Areas
+## API 영역
 
 - `POST /api/auth/register`
 - `POST /api/auth/login`
@@ -75,8 +75,8 @@ On bash-compatible shells:
 - `GET /api/users/me`
 - `GET /api/users/{username}`
 
-## Notes
+## 메모
 
-- `.gradle/`, `build/`, `.idea/`, local `.env`, and `application.log` are ignored and should not be committed.
-- `gradle/wrapper/gradle-wrapper.jar` is intentionally tracked so the wrapper works after clone.
-- Local app configuration files under `src/main/resources/application*.yml` are ignored; use `.env.example` as the shared template.
+- `.gradle/`, `build/`, `.idea/`, 로컬 `.env`, `application.log`는 ignore 대상이며 커밋하지 않습니다.
+- `gradle/wrapper/gradle-wrapper.jar`는 clone 후 wrapper가 동작하도록 의도적으로 추적합니다.
+- `src/main/resources/application*.yml`의 로컬 설정 파일은 ignore 대상입니다. 공유 템플릿은 `.env.example`을 사용합니다.

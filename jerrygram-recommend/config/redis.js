@@ -12,7 +12,7 @@ class RedisClient {
   async connect() {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
-    logger.info(`🔗 Connecting to Redis: ${redisUrl}`);
+    logger.info(`Connecting to Redis: ${redisUrl}`);
 
     try {
       this.client = createClient({
@@ -20,9 +20,9 @@ class RedisClient {
         socket: {
           reconnectStrategy: (retries) => {
             this.retryCount++;
-            logger.warn(`♻️ Redis reconnect attempt ${this.retryCount}`);
+            logger.warn(`Redis reconnect attempt ${this.retryCount}`);
             if (retries > this.maxRetries) {
-              logger.error('❌ Redis max retries exceeded');
+              logger.error('Redis max retries exceeded');
               return new Error('Max retries exceeded');
             }
             return Math.min(retries * 100, 2000);
@@ -31,24 +31,24 @@ class RedisClient {
       });
 
       this.client.on('connect', () => {
-        logger.info('✅ Redis client connected');
+        logger.info('Redis client connected');
         this.isConnected = true;
         this.retryCount = 0;
       });
 
       this.client.on('error', (err) => {
-        logger.error('❌ Redis client error:', err);
+        logger.error('Redis client error:', err);
         this.isConnected = false;
       });
 
       this.client.on('end', () => {
-        logger.warn('🚫 Redis client connection closed');
+        logger.warn('Redis client connection closed');
         this.isConnected = false;
       });
 
       await this.client.connect();
     } catch (error) {
-      logger.error('🚨 Failed to connect to Redis:', error);
+      logger.error('Failed to connect to Redis:', error);
       this.isConnected = false;
     }
   }
@@ -57,7 +57,7 @@ class RedisClient {
     if (this.client) {
       await this.client.quit();
       this.isConnected = false;
-      logger.info('🔌 Redis client disconnected');
+      logger.info('Redis client disconnected');
     }
   }
 

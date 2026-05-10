@@ -1,5 +1,5 @@
 export const errorHandler = (err, req, res, next) => {
-  console.error('❌ Error:', err);
+  console.error('[error]', err);
 
   if (err.code === 'ECONNREFUSED') {
     return res.status(503).json({

@@ -10,7 +10,6 @@ import { validateText } from '../validation/validators.js';
  */
 export async function getEmbedding(text) {
   try {
-    logger.info('Generating embedding test1');
     validateText(text, 'text', EMBEDDING_CONFIG.maxTokens);
     
     if (!text || text.trim().length === 0) {

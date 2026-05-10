@@ -1,10 +1,10 @@
 # Jerrygram Java Backend
 
-Language: English | [한국어](README.ko.md) | [日本語](README.ja.md)
+Language: [English](README.md) | [한국어](README.ko.md) | 日本語
 
-Java 21 + Spring Boot backend implementation for Jerrygram. It mirrors the main API surface and shares the same PostgreSQL, Redis, Elasticsearch, and Blob Storage oriented architecture.
+Jerrygram の Java 21 + Spring Boot backend implementation です。主要な API surface を合わせ、PostgreSQL、Redis、Elasticsearch、Blob Storage oriented architecture を共有します。
 
-The React web UI is wired to the .NET API by default, so this backend is kept as an alternate Java implementation.
+React web UI は default で .NET API に接続します。この backend は Java/Spring Boot の alternate implementation として保持されています。
 
 ## Stack
 
@@ -32,13 +32,13 @@ src/main/java/com/jerrygram/
 
 ## Local Environment
 
-Copy the example file before running locally:
+Local run の前に example file をコピーします。
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-The example uses the same adjusted local service ports as the root Docker stack:
+Example values は root Docker stack と同じ adjusted local ports を使います。
 
 - PostgreSQL: `localhost:15433`
 - Redis: `localhost:16380`
@@ -54,7 +54,7 @@ The example uses the same adjusted local service ports as the root Docker stack:
 .\gradlew.bat bootRun --args="--spring.profiles.active=dev"
 ```
 
-On bash-compatible shells:
+bash-compatible shells:
 
 ```bash
 ./gradlew build
@@ -77,6 +77,6 @@ On bash-compatible shells:
 
 ## Notes
 
-- `.gradle/`, `build/`, `.idea/`, local `.env`, and `application.log` are ignored and should not be committed.
-- `gradle/wrapper/gradle-wrapper.jar` is intentionally tracked so the wrapper works after clone.
-- Local app configuration files under `src/main/resources/application*.yml` are ignored; use `.env.example` as the shared template.
+- `.gradle/`, `build/`, `.idea/`, local `.env`, `application.log` は ignore 対象で、commit しません。
+- `gradle/wrapper/gradle-wrapper.jar` は clone 後に wrapper が動作するよう intentional に tracked されています。
+- Local app configuration files under `src/main/resources/application*.yml` are ignored. Use `.env.example` as the shared template.
