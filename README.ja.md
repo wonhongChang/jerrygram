@@ -12,7 +12,7 @@ Jerrygram は React、ASP.NET Core、PostgreSQL、Redis、Blob Storage、Elastic
 | --- | --- |
 | Product flow | 登録/ログイン、フィード、投稿アップロード、プロフィール、検索、通知、保存済み投稿、探索レコメンド |
 | Backend | layered architecture の ASP.NET Core Web API、EF Core、Redis cache、Blob Storage、Elasticsearch、Kafka event、JWT auth |
-| Event analytics | 検索/投稿/ユーザー event が Kafka と Logstash/Kafka Connect を経由して `jerrygram-events-*` index に保存される |
+| Event analytics | 検索/投稿/ユーザー event が Kafka に流れ、検索 event は Redis に stream processing され、`jerrygram-events-*` index にも保存される |
 | Recommendation | Node.js service が caption embedding、Redis cache、cosine similarity で候補投稿を並べる |
 | Java coverage | Java 21 + Spring Boot backend を代替実装として保持し、CI で検証 |
 | Quality gates | GitHub Actions build/test、.NET tests、Java smoke test、Node recommendation tests、React unit test、Playwright E2E |
@@ -43,6 +43,7 @@ Jerrygram は React、ASP.NET Core、PostgreSQL、Redis、Blob Storage、Elastic
 
 - [バックエンドアーキテクチャ](docs/backend-architecture.ja.md)
 - [レコメンドと Kafka の証跡](docs/recommendation-and-kafka.ja.md)
+- [Kafka stream processing](docs/stream-processing.ja.md)
 - [Elasticsearch インデックス一覧](docs/elasticsearch-indexes.ja.md)
 - [環境変数とシークレット設定](docs/env-and-secrets.ja.md)
 - [シードデータ](infra/seed/README.ja.md)
@@ -63,6 +64,7 @@ Jerrygram は React、ASP.NET Core、PostgreSQL、Redis、Blob Storage、Elastic
 - Redis キャッシュとインメモリ fallback
 - Elasticsearch による検索と探索
 - .NET API からの Kafka イベント発行
+- Redis にほぼリアルタイムの検索トレンドを蓄積する Kafka consumer stream processing
 - Kafka から Logstash/Kafka Connect を経由して Elasticsearch に保存するイベントパイプライン
 - `jerrygram-events-*` を確認できる Kibana 構成
 - キャプション embedding と cosine similarity で候補投稿を並べる Node.js レコメンドサービス

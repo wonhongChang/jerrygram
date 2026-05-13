@@ -36,20 +36,24 @@ sequenceDiagram
     participant Api as .NET API
     participant Queue as QueuedEventPublisher
     participant Kafka as Kafka
+    participant Processor as SearchTrendStreamProcessor
+    participant Redis as Redis
     participant ES as Elasticsearch
     participant Kibana as Kibana
 
     Web->>Api: GET /api/search?query=kafka
     Api->>Queue: enqueue SearchEvent
     Queue->>Kafka: publish to search-events
+    Processor->>Kafka: consume search-events
+    Processor->>Redis: update rolling trend buckets
     Kafka->>ES: Kafka Connect / Logstash indexing
-    Api->>ES: terms aggregation over jerrygram-events-*
-    ES-->>Api: popular and trending terms
+    Api->>Redis: read popular and trending terms
+    Api->>ES: fallback aggregation over jerrygram-events-*
     Api-->>Web: /search/popular and /search/popular/trending
     Kibana->>ES: inspect event indices
 ```
 
-重要なのは、検索語が UI に hard-code されていないことです。検索 request は `SearchEvent` を発行し、Elasticsearch が event index に保存し、`PopularSearchService` が `jerrygram-events-*` から人気/トレンド検索語を計算します。
+重要なのは、検索語が UI に hard-code されていないことです。検索 request は `SearchEvent` を発行し、.NET stream processor が `search-events` を consume して Redis sorted-set bucket を更新します。Elasticsearch は同じ event を `jerrygram-events-*` に保存し、証跡と fallback aggregation を提供します。
 
 ## 検索イベント例
 
@@ -70,12 +74,14 @@ sequenceDiagram
 
 ## ローカル Docker 証跡
 
-2026-05-10 にローカル Docker スタックで確認した内容です。
+Kafka/Kibana 証跡は 2026-05-10 にローカル Docker スタックで取得しました。Redis stream-processing smoke check は 2026-05-13 に実行しました。
 
 | 画面 / 表面 | 証跡 |
 | --- | --- |
 | Kafka UI | `jerrygram-local` cluster は online で、topic は `8` 個あります。`search-events`, `post-events`, `user-events` は non-zero offset を持っています。 |
 | Kafka topics | `search-events` offset range `10`-`26`, `post-events` `1`-`20`, `user-events` `0`-`59`. |
+| Stream processor | `SearchTrendStreamProcessor` が `search-events` を consume し、Redis `jg:search-trends:*` bucket を更新します。 |
+| Stream processor smoke | 一時 API instance が `streamtest` search event 3 件を consume し、Redis backed popular-search count `3` を返しました。検証後、一時 test member は削除しました。 |
 | Kibana / Elasticsearch | `jerrygram-events-search-*`, `jerrygram-events-post-*`, `jerrygram-events-user-*` event index が存在します。 |
 | Elasticsearch 件数 | 2026-05-10 index では search `8`, post `5`, user `12` documents. |
 | レコメンドサービス | `GET http://localhost:13001/health` は `status: healthy`, service `jerrygram-recommend`, version `1.0.0` を返します。 |
@@ -90,5 +96,6 @@ sequenceDiagram
 2. seed ユーザーでログインします。
 3. `kafka` を複数回検索します。
 4. Kafka UI `http://localhost:18081/ui/clusters/jerrygram-local/all-topics` で `search-events` を確認します。
-5. Kibana `http://localhost:15601/app/management/data/index_management/indices` で `jerrygram-events-search-*` を確認します。
-6. 検索画面を再度開き、繰り返し検索語がトレンド一覧に反映されていることを確認します。
+5. Redis で `jg:search-trends:*` key を確認し、stream processor read model を検証します。
+6. Kibana `http://localhost:15601/app/management/data/index_management/indices` で `jerrygram-events-search-*` を確認します。
+7. 検索画面を再度開き、繰り返し検索語がトレンド一覧に反映されていることを確認します。

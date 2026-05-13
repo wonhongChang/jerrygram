@@ -1,4 +1,5 @@
 using System.Text;
+using Application.DTOs;
 using Application.Interfaces;
 using Elasticsearch.Net;
 using Infrastructure.Services;
@@ -44,6 +45,7 @@ public class PopularSearchServiceTests
         var service = new PopularSearchService(
             new ElasticClient(settings),
             new NullCacheService(),
+            new NullSearchTrendReadModel(),
             NullLogger<PopularSearchService>.Instance);
 
         var results = await service.GetPopularSearchesAsync(10, TimeSpan.FromHours(24));
@@ -59,6 +61,45 @@ public class PopularSearchServiceTests
         Assert.Contains("\"field\":\"searchTerm.keyword\"", query);
     }
 
+    [Fact]
+    public async Task GetPopularSearchesAsync_PrefersStreamReadModelBeforeElasticsearchFallback()
+    {
+        var requestBody = Array.Empty<byte>();
+        var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
+        var connection = new InMemoryConnection(Encoding.UTF8.GetBytes("{}"), 200);
+        var settings = new ConnectionSettings(pool, connection)
+            .DisableDirectStreaming()
+            .OnRequestCompleted(call =>
+            {
+                requestBody = call.RequestBodyInBytes ?? Array.Empty<byte>();
+            });
+
+        var streamResults = new List<PopularSearchDto>
+        {
+            new()
+            {
+                SearchTerm = "kafka",
+                Count = 5,
+                Rank = 1,
+                LastSearched = DateTime.UtcNow,
+                Category = "stable"
+            }
+        };
+
+        var service = new PopularSearchService(
+            new ElasticClient(settings),
+            new NullCacheService(),
+            new FakeSearchTrendReadModel(streamResults),
+            NullLogger<PopularSearchService>.Instance);
+
+        var results = await service.GetPopularSearchesAsync(10, TimeSpan.FromHours(24));
+
+        var result = Assert.Single(results);
+        Assert.Equal("kafka", result.SearchTerm);
+        Assert.Equal(5, result.Count);
+        Assert.Empty(requestBody);
+    }
+
     private sealed class NullCacheService : ICacheService
     {
         public Task<T?> GetAsync<T>(string key) where T : class => Task.FromResult<T?>(null);
@@ -69,6 +110,39 @@ public class PopularSearchServiceTests
 
         public void RemoveByPattern(string pattern)
         {
+        }
+    }
+
+    private sealed class NullSearchTrendReadModel : ISearchTrendReadModel
+    {
+        public Task<List<PopularSearchDto>> GetPopularSearchesAsync(int limit, TimeSpan timeWindow)
+        {
+            return Task.FromResult(new List<PopularSearchDto>());
+        }
+
+        public Task<List<PopularSearchDto>> GetTrendingSearchesAsync(int limit)
+        {
+            return Task.FromResult(new List<PopularSearchDto>());
+        }
+    }
+
+    private sealed class FakeSearchTrendReadModel : ISearchTrendReadModel
+    {
+        private readonly List<PopularSearchDto> _popularSearches;
+
+        public FakeSearchTrendReadModel(List<PopularSearchDto> popularSearches)
+        {
+            _popularSearches = popularSearches;
+        }
+
+        public Task<List<PopularSearchDto>> GetPopularSearchesAsync(int limit, TimeSpan timeWindow)
+        {
+            return Task.FromResult(_popularSearches.Take(limit).ToList());
+        }
+
+        public Task<List<PopularSearchDto>> GetTrendingSearchesAsync(int limit)
+        {
+            return Task.FromResult(new List<PopularSearchDto>());
         }
     }
 }

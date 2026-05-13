@@ -12,7 +12,7 @@ Jerrygram is an Instagram-style social app built with React, ASP.NET Core, Postg
 | --- | --- |
 | Product flow | Register/login, feed, post upload, profile, search, notifications, saved posts, and explore recommendations |
 | Backend | ASP.NET Core Web API with layered architecture, EF Core, Redis cache, Blob Storage, Elasticsearch, Kafka events, and JWT auth |
-| Event analytics | Search, post, and user events flow through Kafka and Logstash/Kafka Connect into `jerrygram-events-*` indices |
+| Event analytics | Search, post, and user events flow through Kafka, with search events stream-processed into Redis and persisted into `jerrygram-events-*` indices |
 | Recommendation | Node.js service ranks candidate posts with caption embeddings, Redis-backed cache, and cosine similarity |
 | Java coverage | Separate Java 21 + Spring Boot backend kept as an alternate implementation and validated in CI |
 | Quality gates | GitHub Actions build/test, .NET tests, Java smoke test, Node recommendation tests, React unit test, Playwright E2E |
@@ -43,6 +43,7 @@ Backend internals are documented in [docs/backend-architecture.md](docs/backend-
 
 - [Backend architecture](docs/backend-architecture.md)
 - [Recommendation and Kafka evidence](docs/recommendation-and-kafka.md)
+- [Kafka stream processing](docs/stream-processing.md)
 - [Elasticsearch index inventory](docs/elasticsearch-indexes.md)
 - [Environment and secret setup](docs/env-and-secrets.md)
 - [Seed data](infra/seed/README.md)
@@ -63,6 +64,7 @@ Backend internals are documented in [docs/backend-architecture.md](docs/backend-
 - Redis-backed caching with in-memory fallback
 - Elasticsearch-backed search and discovery
 - Kafka event publishing from the .NET API
+- Kafka consumer stream processing for near-real-time search trends in Redis
 - Kafka to Logstash/Kafka Connect to Elasticsearch event pipeline
 - Kibana support for `jerrygram-events-*`
 - Node.js recommendation service that ranks candidates with caption embeddings and cosine similarity

@@ -30,6 +30,18 @@ Jerrygram keeps local secrets out of Git. Commit the `*.example` files, then cop
 | Kibana | `15601` |
 | Logstash API | `19600` |
 
+## Stream Processing Settings
+
+`SearchTrendStreamProcessor` consumes Kafka `search-events` and writes Redis search trend buckets. Keep the consumer group stable locally so Kafka offsets are reused across restarts:
+
+```json
+"SearchTrendStreamProcessor": {
+  "Enabled": true,
+  "BootstrapServers": "localhost:19092",
+  "ConsumerGroup": "jerrygram-search-trend-processor"
+}
+```
+
 ## GitHub Actions
 
 The CI workflow builds and tests the project without production secrets. Runtime-only secrets such as `OPENAI_API_KEY`, Azure storage credentials, or deployment credentials should be added later as GitHub repository secrets only when a deploy workflow is introduced.

@@ -12,7 +12,7 @@ Jerrygram은 React, ASP.NET Core, PostgreSQL, Redis, Blob Storage, Elasticsearch
 | --- | --- |
 | 제품 흐름 | 회원가입/로그인, 피드, 게시물 업로드, 프로필, 검색, 알림, 저장한 게시물, 탐색 추천 |
 | 백엔드 | layered architecture 기반 ASP.NET Core Web API, EF Core, Redis 캐시, Blob Storage, Elasticsearch, Kafka 이벤트, JWT 인증 |
-| 이벤트 analytics | 검색/게시물/사용자 이벤트가 Kafka와 Logstash/Kafka Connect를 거쳐 `jerrygram-events-*` 인덱스로 적재됨 |
+| 이벤트 analytics | 검색/게시물/사용자 이벤트가 Kafka로 흐르고, 검색 이벤트는 Redis에 stream processing되며 `jerrygram-events-*` 인덱스로도 적재됨 |
 | 추천 | Node.js 서비스가 캡션 embedding, Redis 캐시, cosine similarity로 후보 게시물을 정렬 |
 | Java 범위 | Java 21 + Spring Boot 백엔드를 대체 구현으로 유지하고 CI에서 검증 |
 | 품질 검증 | GitHub Actions build/test, .NET 테스트, Java smoke test, Node 추천 테스트, React unit test, Playwright E2E |
@@ -43,6 +43,7 @@ Jerrygram은 React, ASP.NET Core, PostgreSQL, Redis, Blob Storage, Elasticsearch
 
 - [백엔드 아키텍처](docs/backend-architecture.ko.md)
 - [추천과 Kafka 증거](docs/recommendation-and-kafka.ko.md)
+- [Kafka stream processing](docs/stream-processing.ko.md)
 - [Elasticsearch 인덱스 목록](docs/elasticsearch-indexes.ko.md)
 - [환경 변수와 시크릿 설정](docs/env-and-secrets.ko.md)
 - [시드 데이터](infra/seed/README.ko.md)
@@ -63,6 +64,7 @@ Jerrygram은 React, ASP.NET Core, PostgreSQL, Redis, Blob Storage, Elasticsearch
 - Redis 캐시와 인메모리 fallback
 - Elasticsearch 기반 검색과 탐색
 - .NET API의 Kafka 이벤트 발행
+- Redis에 실시간 검색 트렌드를 누적하는 Kafka consumer stream processing
 - Kafka에서 Logstash/Kafka Connect를 거쳐 Elasticsearch로 적재되는 이벤트 파이프라인
 - `jerrygram-events-*`를 확인할 수 있는 Kibana 구성
 - 캡션 임베딩과 cosine similarity로 후보 게시물을 정렬하는 Node.js 추천 서비스

@@ -40,6 +40,7 @@ namespace WebApi.Extensions
             // Add Redis
             services.Configure<RedisCacheSettings>(config.GetSection("RedisCache"));
             services.Configure<CacheSettings>(config.GetSection("Cache"));
+            services.Configure<SearchTrendStreamProcessorSettings>(config.GetSection(SearchTrendStreamProcessorSettings.SectionName));
 
             var redisConnectionString = config.GetConnectionString("Redis") ?? "localhost:6379";
             var redisPassword = config["RedisCache:Password"];
@@ -203,6 +204,13 @@ namespace WebApi.Extensions
             services.AddSingleton<IEventPublisher>(sp => sp.GetRequiredService<QueuedEventPublisher>());
             services.AddHostedService<KafkaEventDispatchService>();
 
+            var searchTrendStreamSettings = config.GetSection(SearchTrendStreamProcessorSettings.SectionName)
+                .Get<SearchTrendStreamProcessorSettings>() ?? new SearchTrendStreamProcessorSettings();
+            if (kafkaSettings?.EnableEventPublishing == true && searchTrendStreamSettings.Enabled)
+            {
+                services.AddHostedService<SearchTrendStreamProcessor>();
+            }
+
             // Register Infrastructure Services
             // services.AddScoped<IAuthService, AuthService>();
             services.AddSingleton<IBlobService, BlobService>();
@@ -210,6 +218,9 @@ namespace WebApi.Extensions
             services.AddScoped<ISearchService, SearchService>();
             services.AddScoped<IPopularSearchService, PopularSearchService>();
             services.AddScoped<IJwtService, JwtService>();
+            services.AddSingleton<RedisSearchTrendReadModel>();
+            services.AddSingleton<ISearchTrendReadModel>(sp => sp.GetRequiredService<RedisSearchTrendReadModel>());
+            services.AddSingleton<ISearchTrendWriter>(sp => sp.GetRequiredService<RedisSearchTrendReadModel>());
 
             // Cache Services
             services.AddMemoryCache();

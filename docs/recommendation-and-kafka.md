@@ -36,20 +36,24 @@ sequenceDiagram
     participant Api as .NET API
     participant Queue as QueuedEventPublisher
     participant Kafka as Kafka
+    participant Processor as SearchTrendStreamProcessor
+    participant Redis as Redis
     participant ES as Elasticsearch
     participant Kibana as Kibana
 
     Web->>Api: GET /api/search?query=kafka
     Api->>Queue: enqueue SearchEvent
     Queue->>Kafka: publish to search-events
+    Processor->>Kafka: consume search-events
+    Processor->>Redis: update rolling trend buckets
     Kafka->>ES: Kafka Connect / Logstash indexing
-    Api->>ES: terms aggregation over jerrygram-events-*
-    ES-->>Api: popular and trending terms
+    Api->>Redis: read popular and trending terms
+    Api->>ES: fallback aggregation over jerrygram-events-*
     Api-->>Web: /search/popular and /search/popular/trending
     Kibana->>ES: inspect event indices
 ```
 
-The important bit: search terms are not hard-coded in the UI. Search requests publish `SearchEvent` records, Elasticsearch stores them by event index, and `PopularSearchService` calculates popular/trending terms from `jerrygram-events-*`.
+The important bit: search terms are not hard-coded in the UI. Search requests publish `SearchEvent` records, the .NET stream processor consumes `search-events` and updates Redis sorted-set buckets, and Elasticsearch still stores the same events as durable evidence under `jerrygram-events-*`.
 
 ## Example Search Event
 
@@ -70,12 +74,14 @@ The important bit: search terms are not hard-coded in the UI. Search requests pu
 
 ## Local Docker Evidence
 
-Captured from the local Docker stack on 2026-05-10:
+Kafka/Kibana evidence was captured from the local Docker stack on 2026-05-10. The Redis stream-processing smoke check was run on 2026-05-13.
 
 | Surface | Evidence |
 | --- | --- |
 | Kafka UI | Cluster `jerrygram-local` is online with `8` topics. `search-events`, `post-events`, and `user-events` have non-zero offsets. |
 | Kafka topics | `search-events` offset range `10`-`26`, `post-events` `1`-`20`, `user-events` `0`-`59`. |
+| Stream processor | `SearchTrendStreamProcessor` consumes `search-events` and updates Redis `jg:search-trends:*` buckets. |
+| Stream processor smoke | A temporary API instance consumed three `streamtest` search events and returned a Redis-backed popular-search count of `3`; the temporary test member was removed after verification. |
 | Kibana / Elasticsearch | Event indices exist for `jerrygram-events-search-*`, `jerrygram-events-post-*`, and `jerrygram-events-user-*`. |
 | Elasticsearch counts | 2026-05-10 indices include search `8`, post `5`, user `12` documents. |
 | Recommend service | `GET http://localhost:13001/health` returns `status: healthy`, service `jerrygram-recommend`, version `1.0.0`. |
@@ -90,5 +96,6 @@ Captured from the local Docker stack on 2026-05-10:
 2. Sign in with a seeded user.
 3. Search for `kafka` multiple times.
 4. Open Kafka UI at `http://localhost:18081/ui/clusters/jerrygram-local/all-topics` and inspect `search-events`.
-5. Open Kibana at `http://localhost:15601/app/management/data/index_management/indices` and inspect `jerrygram-events-search-*`.
-6. Open the Search page again and confirm the trend list includes the repeated term.
+5. Inspect Redis keys matching `jg:search-trends:*` to confirm the stream processor read model.
+6. Open Kibana at `http://localhost:15601/app/management/data/index_management/indices` and inspect `jerrygram-events-search-*`.
+7. Open the Search page again and confirm the trend list includes the repeated term.

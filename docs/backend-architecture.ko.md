@@ -42,6 +42,8 @@
 
 검색 요청은 Elasticsearch 결과를 반환하고 `SearchEvent`를 큐에 넣습니다. Kafka, Logstash, Elasticsearch는 해당 이벤트를 `jerrygram-events-search-YYYY.MM.DD`에 저장합니다. `PopularSearchService`는 `jerrygram-events-*`의 `searchTerm.keyword`를 집계하고 최근 6시간과 이전 6시간을 비교해 트렌딩 검색어를 계산합니다.
 
+현재 검색 트렌드 경로에는 `SearchTrendStreamProcessor`도 포함됩니다. 이 processor는 Kafka `search-events`를 consume하고 Redis sorted-set bucket을 갱신합니다. `PopularSearchService`는 Redis trend model을 먼저 읽고, Elasticsearch aggregation을 fallback과 audit trail로 사용합니다.
+
 ## 이벤트 파이프라인
 
 | Topic | Producer | Consumer | 목적 |
@@ -49,6 +51,7 @@
 | `post-events` | .NET API | Logstash / Elasticsearch | 게시물 생성, 좋아요, 댓글, 삭제 analytics |
 | `user-events` | .NET API | Logstash / Elasticsearch | 가입, 로그인, 팔로우, 프로필 조회 analytics |
 | `search-events` | .NET API | Logstash / Elasticsearch | 인기/트렌딩 검색어 analytics |
+| `search-events` | .NET API | `SearchTrendStreamProcessor` / Redis | 실시간에 가까운 인기/트렌딩 검색어 read model |
 
 Controller는 Kafka를 직접 기다리지 않습니다. `IEventPublisher`가 bounded channel에 이벤트를 쓰고 hosted service가 `IEventService`를 통해 발행합니다. 이렇게 요청 지연과 이벤트 전달 실패를 분리합니다.
 

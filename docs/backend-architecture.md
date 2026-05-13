@@ -42,6 +42,8 @@ The feed includes the current user's own posts and followed-user posts. Own post
 
 Search requests return Elasticsearch results and enqueue `SearchEvent` records. Kafka, Logstash, and Elasticsearch store those events under `jerrygram-events-search-YYYY.MM.DD`. `PopularSearchService` aggregates `searchTerm.keyword` from `jerrygram-events-*` and compares the latest six-hour window with the previous six-hour window for trending terms.
 
+The active search trend path also includes `SearchTrendStreamProcessor`. It consumes Kafka `search-events`, updates Redis sorted-set buckets, and lets `PopularSearchService` read the Redis trend model first. Elasticsearch aggregation remains the fallback and audit trail.
+
 ## Event Pipeline
 
 | Topic | Producer | Consumer | Purpose |
@@ -49,6 +51,7 @@ Search requests return Elasticsearch results and enqueue `SearchEvent` records. 
 | `post-events` | .NET API | Logstash / Elasticsearch | Post create, like, comment, delete analytics |
 | `user-events` | .NET API | Logstash / Elasticsearch | Register, login, follow, profile-view analytics |
 | `search-events` | .NET API | Logstash / Elasticsearch | Popular and trending search analytics |
+| `search-events` | .NET API | `SearchTrendStreamProcessor` / Redis | Near-real-time popular and trending search read model |
 
 The controller does not wait on Kafka directly. `IEventPublisher` writes to a bounded channel, and a hosted service dispatches through `IEventService`. This keeps request latency and event delivery failure separate.
 

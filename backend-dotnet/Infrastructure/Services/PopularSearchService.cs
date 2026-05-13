@@ -9,15 +9,18 @@ namespace Infrastructure.Services
     {
         private readonly IElasticClient _elasticsearchClient;
         private readonly ICacheService _cacheService;
+        private readonly ISearchTrendReadModel _searchTrendReadModel;
         private readonly ILogger<PopularSearchService> _logger;
 
         public PopularSearchService(
             IElasticClient elasticsearchClient,
             ICacheService cacheService,
+            ISearchTrendReadModel searchTrendReadModel,
             ILogger<PopularSearchService> logger)
         {
             _elasticsearchClient = elasticsearchClient;
             _cacheService = cacheService;
+            _searchTrendReadModel = searchTrendReadModel;
             _logger = logger;
         }
 
@@ -31,6 +34,13 @@ namespace Infrastructure.Services
 
             try
             {
+                var streamResults = await _searchTrendReadModel.GetPopularSearchesAsync(limit, window);
+                if (streamResults.Count > 0)
+                {
+                    await _cacheService.SetAsync(cacheKey, streamResults, TimeSpan.FromMinutes(1));
+                    return streamResults;
+                }
+
                 var endTime = DateTime.UtcNow;
                 var startTime = endTime.Subtract(window);
                 var popularSearches = await GetPopularSearchesBetweenAsync(startTime, endTime, limit, "stable");
@@ -50,6 +60,12 @@ namespace Infrastructure.Services
         }
         public async Task<List<PopularSearchDto>> GetTrendingSearchesAsync(int limit = 5)
         {
+            var streamResults = await _searchTrendReadModel.GetTrendingSearchesAsync(limit);
+            if (streamResults.Count > 0)
+            {
+                return streamResults;
+            }
+
             var endTime = DateTime.UtcNow;
             var currentStart = endTime.Subtract(TimeSpan.FromHours(6));
             var previousStart = endTime.Subtract(TimeSpan.FromHours(12));

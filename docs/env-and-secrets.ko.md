@@ -30,6 +30,18 @@ Jerrygram은 로컬 시크릿을 Git에 넣지 않습니다. `*.example` 파일�
 | Kibana | `15601` |
 | Logstash API | `19600` |
 
+## Stream Processing 설정
+
+`SearchTrendStreamProcessor`는 Kafka `search-events`를 consume하고 Redis 검색 트렌드 bucket을 갱신합니다. 로컬에서 restart할 때 Kafka offset을 재사용하려면 consumer group을 안정적으로 유지하세요.
+
+```json
+"SearchTrendStreamProcessor": {
+  "Enabled": true,
+  "BootstrapServers": "localhost:19092",
+  "ConsumerGroup": "jerrygram-search-trend-processor"
+}
+```
+
 ## GitHub Actions
 
 CI workflow는 production secret 없이 프로젝트를 build/test합니다. `OPENAI_API_KEY`, Azure storage credentials, deployment credentials 같은 런타임 전용 시크릿은 나중에 배포 workflow를 도입할 때 GitHub repository secrets로 추가합니다.

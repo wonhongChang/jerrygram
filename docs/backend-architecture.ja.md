@@ -42,6 +42,8 @@ Language: [English](backend-architecture.md) | [한국어](backend-architecture.
 
 検索 request は Elasticsearch 結果を返し、`SearchEvent` を queue に入れます。Kafka、Logstash、Elasticsearch は event を `jerrygram-events-search-YYYY.MM.DD` に保存します。`PopularSearchService` は `jerrygram-events-*` の `searchTerm.keyword` を集計し、直近 6 時間と前の 6 時間を比較して trending term を計算します。
 
+現在の検索トレンド経路には `SearchTrendStreamProcessor` も含まれます。この processor は Kafka `search-events` を consume し、Redis sorted-set bucket を更新します。`PopularSearchService` は Redis trend model を先に読み、Elasticsearch aggregation を fallback と audit trail として使います。
+
 ## イベントパイプライン
 
 | Topic | Producer | Consumer | 目的 |
@@ -49,6 +51,7 @@ Language: [English](backend-architecture.md) | [한국어](backend-architecture.
 | `post-events` | .NET API | Logstash / Elasticsearch | 投稿作成、いいね、コメント、削除 analytics |
 | `user-events` | .NET API | Logstash / Elasticsearch | 登録、ログイン、フォロー、プロフィール閲覧 analytics |
 | `search-events` | .NET API | Logstash / Elasticsearch | 人気/トレンド検索 analytics |
+| `search-events` | .NET API | `SearchTrendStreamProcessor` / Redis | ほぼリアルタイムの人気/トレンド検索 read model |
 
 Controller は Kafka を直接待ちません。`IEventPublisher` が bounded channel に event を書き込み、hosted service が `IEventService` 経由で dispatch します。これにより request latency と event delivery failure を分離します。
 
