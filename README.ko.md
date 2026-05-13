@@ -12,7 +12,7 @@ Jerrygram은 React, ASP.NET Core, PostgreSQL, Redis, Blob Storage, Elasticsearch
 | --- | --- |
 | 제품 흐름 | 회원가입/로그인, 피드, 게시물 업로드, 프로필, 검색, 알림, 저장한 게시물, 탐색 추천 |
 | 백엔드 | layered architecture 기반 ASP.NET Core Web API, EF Core, Redis 캐시, Blob Storage, Elasticsearch, Kafka 이벤트, JWT 인증 |
-| 이벤트 analytics | 검색/게시물/사용자 이벤트가 Kafka로 흐르고, 검색 이벤트는 Redis에 stream processing되며 `jerrygram-events-*` 인덱스로도 적재됨 |
+| 이벤트 analytics | 검색/게시물/사용자 이벤트가 Kafka로 흐르고, 검색 이벤트는 Redis read model로 stream processing되어 Search 화면의 Live trends 패널을 구동하며 `jerrygram-events-*` 인덱스로도 적재됨 |
 | 추천 | Node.js 서비스가 캡션 embedding, Redis 캐시, cosine similarity로 후보 게시물을 정렬 |
 | Java 범위 | Java 21 + Spring Boot 백엔드를 대체 구현으로 유지하고 CI에서 검증 |
 | 품질 검증 | GitHub Actions build/test, .NET 테스트, Java smoke test, Node 추천 테스트, React unit test, Playwright E2E |
@@ -31,13 +31,13 @@ Jerrygram은 React, ASP.NET Core, PostgreSQL, Redis, Blob Storage, Elasticsearch
 
 백엔드 내부 구조는 [docs/backend-architecture.ko.md](docs/backend-architecture.ko.md)에 정리되어 있습니다.
 
-## 스크린샷
+## 데모 화면
 
 ![회원가입 화면](docs/assets/screenshots/jerrygram-register.png)
 
 ![피드 화면](docs/assets/screenshots/jerrygram-feed.png)
 
-![검색 트렌드 화면](docs/assets/screenshots/jerrygram-search.png)
+![실시간 검색 트렌드 화면](docs/assets/screenshots/jerrygram-search.png)
 
 ## 문서
 
@@ -65,6 +65,7 @@ Jerrygram은 React, ASP.NET Core, PostgreSQL, Redis, Blob Storage, Elasticsearch
 - Elasticsearch 기반 검색과 탐색
 - .NET API의 Kafka 이벤트 발행
 - Redis에 실시간 검색 트렌드를 누적하는 Kafka consumer stream processing
+- Search 화면의 Live trends 패널이 stream processing read model을 10초마다 재조회
 - Kafka에서 Logstash/Kafka Connect를 거쳐 Elasticsearch로 적재되는 이벤트 파이프라인
 - `jerrygram-events-*`를 확인할 수 있는 Kibana 구성
 - 캡션 임베딩과 cosine similarity로 후보 게시물을 정렬하는 Node.js 추천 서비스
@@ -119,6 +120,8 @@ cd frontend-react
 npm install
 npm start
 ```
+
+현재 프론트는 Vite가 아니라 Create React App(`react-scripts`)입니다. 검증된 로컬 실행 방식은 React dev server를 Docker 밖에서 실행하고, Docker는 인프라와 백엔드 주변 서비스에 집중시키는 구조입니다. 이 방식이 HMR이 빠르고 디버깅이 단순하며 다른 Docker 프로젝트와의 포트 충돌도 줄입니다. 배포 패키징이나 원커맨드 데모가 필요해지면 프론트 Docker 이미지를 별도로 추가하면 됩니다.
 
 ## 시드와 증거 확인
 

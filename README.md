@@ -12,7 +12,7 @@ Jerrygram is an Instagram-style social app built with React, ASP.NET Core, Postg
 | --- | --- |
 | Product flow | Register/login, feed, post upload, profile, search, notifications, saved posts, and explore recommendations |
 | Backend | ASP.NET Core Web API with layered architecture, EF Core, Redis cache, Blob Storage, Elasticsearch, Kafka events, and JWT auth |
-| Event analytics | Search, post, and user events flow through Kafka, with search events stream-processed into Redis and persisted into `jerrygram-events-*` indices |
+| Event analytics | Search, post, and user events flow through Kafka; search events are stream-processed into a Redis read model that powers the live Search page trends and are also persisted into `jerrygram-events-*` indices |
 | Recommendation | Node.js service ranks candidate posts with caption embeddings, Redis-backed cache, and cosine similarity |
 | Java coverage | Separate Java 21 + Spring Boot backend kept as an alternate implementation and validated in CI |
 | Quality gates | GitHub Actions build/test, .NET tests, Java smoke test, Node recommendation tests, React unit test, Playwright E2E |
@@ -31,13 +31,13 @@ The repository also contains a Java/Spring Boot backend. The current web UI is w
 
 Backend internals are documented in [docs/backend-architecture.md](docs/backend-architecture.md).
 
-## Screenshots
+## Demo Screens
 
 ![Jerrygram register screen](docs/assets/screenshots/jerrygram-register.png)
 
 ![Jerrygram feed screen](docs/assets/screenshots/jerrygram-feed.png)
 
-![Jerrygram search trends screen](docs/assets/screenshots/jerrygram-search.png)
+![Jerrygram live search trends screen](docs/assets/screenshots/jerrygram-search.png)
 
 ## Docs
 
@@ -65,6 +65,7 @@ Backend internals are documented in [docs/backend-architecture.md](docs/backend-
 - Elasticsearch-backed search and discovery
 - Kafka event publishing from the .NET API
 - Kafka consumer stream processing for near-real-time search trends in Redis
+- Search page live trend panel that refreshes the stream-processing read model every 10 seconds
 - Kafka to Logstash/Kafka Connect to Elasticsearch event pipeline
 - Kibana support for `jerrygram-events-*`
 - Node.js recommendation service that ranks candidates with caption embeddings and cosine similarity
@@ -119,6 +120,8 @@ cd frontend-react
 npm install
 npm start
 ```
+
+The web UI is a Create React App (`react-scripts`) project, not Vite. The verified local workflow runs the React dev server outside Docker and keeps Docker focused on infrastructure and backend-adjacent services. This gives faster HMR, simpler debugging, and fewer host-port collisions. A frontend Docker image can still be added later for deployment packaging or a one-command demo.
 
 ## Seed And Evidence
 

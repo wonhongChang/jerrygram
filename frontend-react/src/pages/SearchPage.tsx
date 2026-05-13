@@ -9,18 +9,33 @@ import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { PopularSearch, SearchResult } from '../types';
 import { searchService } from '../services/searchService';
 import { getApiErrorMessage } from '../utils/apiData';
-import { FiHash, FiImage, FiSearch, FiTrendingUp, FiUser } from 'react-icons/fi';
+import { FiHash, FiImage, FiRefreshCw, FiSearch, FiTrendingUp, FiUser } from 'react-icons/fi';
+
+const SEARCH_TREND_REFRESH_MS = 10000;
+
+const formatTrendRefreshTime = (value: Date | null): string => {
+  if (!value) return '';
+
+  const pad = (part: number) => part.toString().padStart(2, '0');
+  return `${pad(value.getHours())}:${pad(value.getMinutes())}:${pad(value.getSeconds())}`;
+};
 
 const SearchPage: React.FC = () => {
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult | null>(null);
   const [popularSearches, setPopularSearches] = useState<PopularSearch[]>([]);
   const [trendingSearches, setTrendingSearches] = useState<PopularSearch[]>([]);
+  const [refreshingTrends, setRefreshingTrends] = useState(false);
+  const [lastTrendRefresh, setLastTrendRefresh] = useState<Date | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showAutocomplete, setShowAutocomplete] = useState(false);
 
-  const loadTrendingAndPopular = useCallback(async () => {
+  const loadTrendingAndPopular = useCallback(async (showRefreshing = false) => {
+    if (showRefreshing) {
+      setRefreshingTrends(true);
+    }
+
     try {
       const [trending, popular] = await Promise.all([
         searchService.getTrendingSearches(10),
@@ -28,8 +43,13 @@ const SearchPage: React.FC = () => {
       ]);
       setTrendingSearches(trending);
       setPopularSearches(popular);
+      setLastTrendRefresh(new Date());
     } catch (error) {
       console.error('Failed to load searches:', error);
+    } finally {
+      if (showRefreshing) {
+        setRefreshingTrends(false);
+      }
     }
   }, []);
 
@@ -54,16 +74,27 @@ const SearchPage: React.FC = () => {
       const results = await searchService.search(searchQuery);
       setSearchResults(results);
       setShowAutocomplete(false);
+      window.setTimeout(() => {
+        void loadTrendingAndPopular();
+      }, 1200);
     } catch (error) {
       setError(getApiErrorMessage(error, 'Failed to search'));
       console.error('Failed to search:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadTrendingAndPopular]);
 
   useEffect(() => {
-    loadTrendingAndPopular();
+    void loadTrendingAndPopular(true);
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void loadTrendingAndPopular();
+      }
+    }, SEARCH_TREND_REFRESH_MS);
+
+    return () => window.clearInterval(intervalId);
   }, [loadTrendingAndPopular]);
 
   useEffect(() => {
@@ -93,6 +124,8 @@ const SearchPage: React.FC = () => {
   const hasSearchResults =
     !!searchResults &&
     (searchResults.posts.length > 0 || searchResults.users.length > 0 || searchResults.hashtags.length > 0);
+  const hasTrendData = trendingSearches.length > 0 || popularSearches.length > 0;
+  const trendRefreshLabel = formatTrendRefreshTime(lastTrendRefresh);
 
   return (
     <Layout>
@@ -162,6 +195,77 @@ const SearchPage: React.FC = () => {
             )}
           </form>
         </div>
+
+        <section className="mb-6 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-950">
+                <FiTrendingUp className="text-red-500" />
+                Live trends
+              </h2>
+              {trendRefreshLabel && (
+                <p className="mt-1 text-xs text-gray-500">Updated {trendRefreshLabel}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => loadTrendingAndPopular(true)}
+              disabled={refreshingTrends}
+              aria-label="Refresh live trends"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-200 text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <FiRefreshCw className={refreshingTrends ? 'animate-spin' : ''} size={16} />
+            </button>
+          </div>
+
+          {hasTrendData ? (
+            <div className="grid gap-4 lg:grid-cols-2">
+              {trendingSearches.length > 0 && (
+                <div>
+                  <h3 className="mb-2 text-xs font-semibold uppercase text-gray-500">Trending</h3>
+                  <div className="space-y-1">
+                    {trendingSearches.map((search) => (
+                      <button
+                        key={`${search.searchTerm}-${search.rank}-live`}
+                        onClick={() => runSearch(search.searchTerm)}
+                        className="w-full rounded-md px-3 py-2 text-left transition-colors hover:bg-gray-50"
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold text-gray-950">{search.searchTerm}</div>
+                            <div className="text-xs text-gray-500">{search.count} searches</div>
+                          </div>
+                          <div className="rounded-md bg-red-50 px-2 py-1 text-xs font-semibold text-red-600">
+                            #{search.rank}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {popularSearches.length > 0 && (
+                <div>
+                  <h3 className="mb-2 text-xs font-semibold uppercase text-gray-500">Popular</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {popularSearches.map((search) => (
+                      <button
+                        key={`${search.searchTerm}-${search.rank}-popular-live`}
+                        onClick={() => runSearch(search.searchTerm)}
+                        className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100"
+                      >
+                        {search.searchTerm}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <EmptyState title={refreshingTrends ? 'Loading live trends' : 'No search trends yet'} />
+          )}
+        </section>
 
         {error && (
           <div className="mb-6">
@@ -233,61 +337,6 @@ const SearchPage: React.FC = () => {
             {!loading && !hasSearchResults && (
               <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
                 <EmptyState title="No results found" />
-              </div>
-            )}
-          </div>
-        )}
-
-        {!query && !searchResults && (
-          <div className="grid gap-4 lg:grid-cols-2">
-            {trendingSearches.length > 0 && (
-              <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-950">
-                  <FiTrendingUp className="text-red-500" />
-                  Trending
-                </h2>
-                <div className="space-y-1">
-                  {trendingSearches.map((search) => (
-                    <button
-                      key={`${search.searchTerm}-${search.rank}`}
-                      onClick={() => runSearch(search.searchTerm)}
-                      className="w-full rounded-md px-3 py-2 text-left transition-colors hover:bg-gray-50"
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-semibold text-gray-950">{search.searchTerm}</div>
-                          <div className="text-xs text-gray-500">{search.count} searches</div>
-                        </div>
-                        <div className="rounded-md bg-red-50 px-2 py-1 text-xs font-semibold text-red-600">
-                          #{search.rank}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {popularSearches.length > 0 && (
-              <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                <h2 className="mb-3 text-sm font-semibold text-gray-950">Popular</h2>
-                <div className="flex flex-wrap gap-2">
-                  {popularSearches.map((search) => (
-                    <button
-                      key={`${search.searchTerm}-${search.rank}`}
-                      onClick={() => runSearch(search.searchTerm)}
-                      className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100"
-                    >
-                      {search.searchTerm}
-                    </button>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {trendingSearches.length === 0 && popularSearches.length === 0 && (
-              <div className="rounded-lg border border-gray-200 bg-white shadow-sm lg:col-span-2">
-                <EmptyState title="Search Jerrygram" />
               </div>
             )}
           </div>

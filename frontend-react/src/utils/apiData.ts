@@ -25,6 +25,19 @@ const toStringValue = (value: unknown, fallback = ''): string => {
   return String(value);
 };
 
+const toErrorMessages = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.flatMap(toErrorMessages);
+  }
+
+  if (isRecord(value)) {
+    return Object.values(value).flatMap(toErrorMessages);
+  }
+
+  const message = toStringValue(value).trim();
+  return message ? [message] : [];
+};
+
 const toNumberValue = (value: unknown, fallback = 0): number => {
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : fallback;
@@ -61,10 +74,24 @@ export const getApiErrorMessage = (error: any, fallback = 'Something went wrong.
   const data = error?.response?.data;
   if (typeof data === 'string') return data;
   if (isRecord(data)) {
+    const validationMessages = toErrorMessages(data.errors);
+    if (validationMessages.length > 0) return validationMessages.join(' ');
+
     const message = firstDefined(data.message, data.error, data.title);
     if (message) return toStringValue(message, fallback);
   }
   return error?.message || fallback;
+};
+
+export const getApiValidationErrors = (error: any): Record<string, string> => {
+  const data = error?.response?.data;
+  if (!isRecord(data) || !isRecord(data.errors)) return {};
+
+  return Object.entries(data.errors).reduce<Record<string, string>>((errors, [field, value]) => {
+    const message = toErrorMessages(value).join(' ').trim();
+    if (message) errors[field] = message;
+    return errors;
+  }, {});
 };
 
 export const normalizeSimpleUser = (value: unknown): SimpleUser => {

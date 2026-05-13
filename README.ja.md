@@ -12,7 +12,7 @@ Jerrygram は React、ASP.NET Core、PostgreSQL、Redis、Blob Storage、Elastic
 | --- | --- |
 | Product flow | 登録/ログイン、フィード、投稿アップロード、プロフィール、検索、通知、保存済み投稿、探索レコメンド |
 | Backend | layered architecture の ASP.NET Core Web API、EF Core、Redis cache、Blob Storage、Elasticsearch、Kafka event、JWT auth |
-| Event analytics | 検索/投稿/ユーザー event が Kafka に流れ、検索 event は Redis に stream processing され、`jerrygram-events-*` index にも保存される |
+| Event analytics | 検索/投稿/ユーザー event が Kafka に流れ、検索 event は Redis read model に stream processing されて Search 画面の Live trends パネルを動かし、`jerrygram-events-*` index にも保存される |
 | Recommendation | Node.js service が caption embedding、Redis cache、cosine similarity で候補投稿を並べる |
 | Java coverage | Java 21 + Spring Boot backend を代替実装として保持し、CI で検証 |
 | Quality gates | GitHub Actions build/test、.NET tests、Java smoke test、Node recommendation tests、React unit test、Playwright E2E |
@@ -31,13 +31,13 @@ Jerrygram は React、ASP.NET Core、PostgreSQL、Redis、Blob Storage、Elastic
 
 バックエンド内部構造は [docs/backend-architecture.ja.md](docs/backend-architecture.ja.md) にまとめています。
 
-## スクリーンショット
+## デモ画面
 
 ![登録画面](docs/assets/screenshots/jerrygram-register.png)
 
 ![フィード画面](docs/assets/screenshots/jerrygram-feed.png)
 
-![検索トレンド画面](docs/assets/screenshots/jerrygram-search.png)
+![リアルタイム検索トレンド画面](docs/assets/screenshots/jerrygram-search.png)
 
 ## ドキュメント
 
@@ -65,6 +65,7 @@ Jerrygram は React、ASP.NET Core、PostgreSQL、Redis、Blob Storage、Elastic
 - Elasticsearch による検索と探索
 - .NET API からの Kafka イベント発行
 - Redis にほぼリアルタイムの検索トレンドを蓄積する Kafka consumer stream processing
+- Search 画面の Live trends パネルが stream processing read model を 10 秒ごとに再取得
 - Kafka から Logstash/Kafka Connect を経由して Elasticsearch に保存するイベントパイプライン
 - `jerrygram-events-*` を確認できる Kibana 構成
 - キャプション embedding と cosine similarity で候補投稿を並べる Node.js レコメンドサービス
@@ -119,6 +120,8 @@ cd frontend-react
 npm install
 npm start
 ```
+
+現在のフロントエンドは Vite ではなく Create React App(`react-scripts`) です。検証済みのローカル実行では React dev server を Docker の外で起動し、Docker はインフラとバックエンド周辺サービスに集中させています。この方が HMR が速く、デバッグも単純で、他の Docker プロジェクトとのポート衝突も減らせます。デプロイ用パッケージングやワンコマンドデモが必要になったら、フロントエンド用 Docker image を別途追加できます。
 
 ## シードと証跡
 
