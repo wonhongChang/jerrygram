@@ -635,6 +635,7 @@ jerrygram-recommend/node_modules/
 /.claude
 /docs/*
 !/docs/assets/
+/docs/assets/*
 !/docs/assets/jerrygram-architecture.png
 !/docs/assets/backend-architecture.svg
 !/docs/assets/screenshots/
